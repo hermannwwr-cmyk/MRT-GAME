@@ -13,7 +13,7 @@ A Singapore MRT math game for kids around age 6: single-digit addition and subtr
 Made for young kids:
 - Big buttons with only 3 answers to choose from
 - Tap the passengers to count them (a number appears on each one)
-- After a right answer, passengers walk to the train doors and get on (or step off and walk away waving) one at a time, while a big counter counts on or back out loud: 6 → 7 → 8 → 9
+- When the train stops, passengers walk to the doors and get on (or step off and walk away waving) one at a time, while a counter says how many: ➕ 1, 2, 3. Then the question appears, and kids can count everyone in the train.
 - 🔊 reads the question aloud, since many 6-year-olds are still learning to read
 - Wrong answers are gentle: "try again", then a count-on or count-back hint
 - No timers and no losing

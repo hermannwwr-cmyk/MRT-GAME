@@ -401,18 +401,24 @@
   }
 
   function say(text) {
-    if (!soundOn || !("speechSynthesis" in window)) return;
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 0.9; u.pitch = 1.1;
-      const v = speechSynthesis.getVoices().find(v => /en[-_](SG|GB|AU)/i.test(v.lang)) || speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
-      if (v) u.voice = v;
-      u.onstart = () => music.duck(true);
-      u.onend = u.onerror = () => music.duck(false);
-      speechSynthesis.speak(u);
-    } catch {}
+    const pause = Math.max(1200, text.length * 55);
+    if (!soundOn || !("speechSynthesis" in window)) return sleep(pause);
+    return new Promise(resolve => {
+      const end = () => { clearTimeout(guard); music.duck(false); resolve(); };
+      const guard = setTimeout(end, pause + 2500); // some browsers never fire onend
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(text);
+        u.rate = 0.9; u.pitch = 1.1;
+        const v = speechSynthesis.getVoices().find(v => /en[-_](SG|GB|AU)/i.test(v.lang)) || speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
+        if (v) u.voice = v;
+        u.onstart = () => music.duck(true);
+        u.onend = u.onerror = end;
+        speechSynthesis.speak(u);
+      } catch { end(); }
+    });
   }
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
 
   // ---- scenery art: simple SVG tiles that repeat sideways ----
   const svgUrl = svg => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -602,35 +608,53 @@
     }
   }
 
-  // Pull into the station: doors open, then ask the question.
-  function arrive() {
+  // Pull into the station: doors open, passengers get on or off, then ask the question.
+  async function arrive() {
+    const gen = S.gen;
     S.at++;
     renderRoute(S.at);
     $("signLbl").textContent = "Now at";
     $("train").classList.add("open");
     sfx.chime();
     const q = S.q, station = S.line.stations[S.at];
-    S.tries = 0; S.counted = 0; S.busy = false;
+    S.tries = 0; S.counted = 0; S.busy = true;
+    const ppl = q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`;
+    const verb = q.b === 1 ? "gets" : "get";
     $("story").innerHTML = q.op === "+"
-      ? `There ${q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`} on the train.<br><b>${q.b}</b> more ${q.b === 1 ? "gets" : "get"} on at <b>${station}</b>. How many now?`
-      : `There ${q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`} on the train.<br><b>${q.b}</b> ${q.b === 1 ? "gets" : "get"} off at <b>${station}</b>. How many are left?`;
+      ? `There ${ppl} on the train.<br><b>${q.b}</b> more ${verb} on at <b>${station}</b>.`
+      : `There ${ppl} on the train.<br><b>${q.b}</b> ${verb} off at <b>${station}</b>.`;
     $("equation").innerHTML = `${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = <span class="q">?</span>`;
-    const box = $("answers"); box.innerHTML = "";
+    $("answers").innerHTML = "";
+
+    await sleep(slow(700)); // doors finish opening
+    if (gen !== S.gen) return;
+    await say(storyLine());
+    if (gen !== S.gen) return;
+    await movePassengers(q, gen);
+    if (gen !== S.gen) return;
+    await sleep(slow(500));
+    if (gen !== S.gen) return;
+
+    $("story").innerHTML += q.op === "+" ? " How many now?" : " How many are left?";
+    const box = $("answers");
     q.opts.forEach(v => {
       const b = document.createElement("button");
       b.className = "ans"; b.textContent = v;
       b.onclick = () => answer(v, b);
       box.appendChild(b);
     });
-    setTimeout(speakQ, 900);
+    S.busy = false;
+    say(askLine());
   }
 
+  const storyLine = () => {
+    const q = S.q, st = S.line.stations[S.at];
+    return q.op === "+" ? `${q.a} on the train. ${q.b} more get on at ${st}.` : `${q.a} on the train. ${q.b} get off at ${st}.`;
+  };
+  const askLine = () => S.q.op === "+" ? `What is ${S.q.a} plus ${S.q.b}?` : `What is ${S.q.a} take away ${S.q.b}?`;
   function speakQ() {
     if (!S.q || S.busy) return;
-    const q = S.q, st = S.line.stations[S.at];
-    say(q.op === "+"
-      ? `${q.a} on the train. ${q.b} more get on at ${st}. What is ${q.a} plus ${q.b}?`
-      : `${q.a} on the train. ${q.b} get off at ${st}. What is ${q.a} take away ${q.b}?`);
+    say(`${storyLine()} ${askLine()}`);
   }
 
   function answer(v, btn) {
@@ -654,24 +678,19 @@
     const cheer = pick(CHEERS);
     $("feedback").textContent = `${cheer} ${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = ${q.ans} ${S.tries === 0 ? "⭐" : ""}`;
     sfx.right();
-    say(cheer);
     document.querySelectorAll("#scene .pax .n").forEach(n => n.remove()); // clear tap-to-count numbers
+    setTally(`🧑 ${q.ans}`, true);
+    say(`${cheer} ${q.a} ${q.op === "+" ? "plus" : "take away"} ${q.b} is ${q.ans}!`);
 
     const gen = S.gen;
-    movePassengers(q, gen).then(() => {
+    setTimeout(() => {
       if (gen !== S.gen) return;
-      setTally(q.ans, true);
-      say(`${q.a} ${q.op === "+" ? "plus" : "take away"} ${q.b} is ${q.ans}!`);
-      setTimeout(() => {
-        if (gen !== S.gen) return;
-        if (S.at >= S.line.stations.length - 1) finish();
-        else depart();
-      }, 2600);
-    });
+      if (S.at >= S.line.stations.length - 1) finish();
+      else depart();
+    }, 3200);
   }
 
   // ---- passengers walking on and off ----
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
   const slow = ms => reduceMotion ? ms * 0.25 : ms;
 
   // Where an element sits inside the scene, in px.
@@ -684,9 +703,9 @@
     return [...document.querySelectorAll("#train .door")].map(rel)
       .reduce((a, b) => Math.abs(mid(b) - mid(r)) < Math.abs(mid(a) - mid(r)) ? b : a);
   }
-  function setTally(n, done) {
+  function setTally(text, done) {
     const t = $("tally");
-    t.textContent = `🧑 ${n}`;
+    t.textContent = text;
     t.classList.add("show");
     t.classList.toggle("done", !!done);
     t.classList.remove("bump"); void t.offsetWidth; t.classList.add("bump");
@@ -749,16 +768,16 @@
     ], dur, "bye");
   }
 
-  // One passenger at a time (slightly overlapping), counting on or back out loud.
+  // One passenger at a time (slightly overlapping). The bubble counts how many get on/off
+  // (➕ 1, 2, 3), not the total, so the answer isn't given away.
   async function movePassengers(q, gen) {
-    await sleep(slow(1000)); // let the cheer finish
-    if (gen !== S.gen) return;
-    let n = q.a;
-    setTally(n);
+    const sign = q.op === "+" ? "➕" : "➖";
+    let k = 0;
+    setTally(`${sign} 0`);
     const group = q.op === "+"
       ? [...$("platform").querySelectorAll(".pax")]
       : [...$("carriage").querySelectorAll(".pax.leaving")];
-    const step = () => { n += q.op === "+" ? 1 : -1; setTally(n); sfx.tick(); say(String(n)); };
+    const step = () => { k++; setTally(`${sign} ${k}`); sfx.tick(); say(String(k)); };
     const jobs = [];
     for (const p of group) {
       if (gen !== S.gen) return;
