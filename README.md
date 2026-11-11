@@ -1,15 +1,14 @@
 # 🚆 MRT Math Express
 
-A Singapore MRT math game for kids around age 6: single-digit addition and subtraction.
+A Singapore MRT math game for kids around age 6: single-digit addition and subtraction, with every number 10 or less.
 
 **Play:** open `index.html` in any browser (phone, tablet or computer). No install or internet needed.
 
 ## How it plays
 1. Pick an MRT line: NS, EW, NE, CC, DT or TE (real station names, in order).
 2. Pick **➕ Get on** (adding), **➖ Get off** (taking away) or **🔀 Both**.
-3. Pick **🐣 Easy** (up to 10) or **🦁 Challenge** (up to 18).
-4. At each station, passengers get on or off. Answer the sum to send the train to the next stop.
-5. Reach the last station to win. Getting it right on the first try earns ⭐. Finished lines get a 🏅.
+3. At each station, passengers get on or off. Answer the sum to send the train to the next stop.
+4. Reach the last station to win. Getting it right on the first try earns ⭐. Finished lines get a 🏅.
 
 Made for young kids:
 - Big buttons with only 3 answers to choose from

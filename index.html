@@ -159,12 +159,6 @@
     <button class="pill" data-mode="mix">🔀 Both<small>mixed</small></button>
   </div>
 
-  <h2>3. How hard?</h2>
-  <div class="choices" id="levelList">
-    <button class="pill sel" data-level="easy">🐣 Easy<small>numbers up to 10</small></button>
-    <button class="pill" data-level="hard">🦁 Challenge<small>numbers up to 18</small></button>
-  </div>
-
   <button class="go" id="goBtn">All aboard! 🚆</button>
 </section>
 
@@ -240,7 +234,7 @@
   let soundOn = store.get("mrtSound", true);
 
   // ---- state ----
-  const S = { line: LINES[0], mode: "add", level: "easy", stop: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
+  const S = { line: LINES[0], mode: "add", stop: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
 
   // ---- audio ----
   let ac;
@@ -294,7 +288,6 @@
     });
   }
   bindPills("modeList", "mode", "mode");
-  bindPills("levelList", "level", "level");
 
   function show(id) {
     document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
@@ -304,23 +297,18 @@
   // ---- questions ----
   function makeQuestion() {
     const op = S.mode === "mix" ? pick(["+", "-"]) : (S.mode === "add" ? "+" : "-");
-    const easy = S.level === "easy";
+    // Easy level only: every number in the question and answer is 10 or less.
     let a, b, key, guard = 0;
     do {
-      if (op === "+") {
-        a = rand(1, 9); b = rand(1, 9);
-        if (easy && a + b > 10) { b = rand(1, 10 - a || 1); if (a + b > 10) { a = 5; b = rand(1, 5); } }
-      } else {
-        if (easy) { a = rand(2, 10); b = rand(1, Math.min(9, a)); }
-        else { a = rand(6, 18); b = rand(Math.max(1, a - 9), 9); }
-      }
+      if (op === "+") { a = rand(1, 9); b = rand(1, 10 - a); }
+      else { a = rand(2, 10); b = rand(1, Math.min(9, a)); }
       key = a + op + b;
     } while (key === S.last && guard++ < 20);
     S.last = key;
     const ans = op === "+" ? a + b : a - b;
     const opts = new Set([ans]);
     const near = shuffle([-2, -1, 1, 2, 3, -3]);
-    for (const d of near) { if (opts.size >= 3) break; const v = ans + d; if (v >= 0 && v <= 18) opts.add(v); }
+    for (const d of near) { if (opts.size >= 3) break; const v = ans + d; if (v >= 0 && v <= 10) opts.add(v); }
     return { a, b, op, ans, opts: shuffle([...opts]) };
   }
 
