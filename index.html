@@ -174,8 +174,8 @@
   /* Phone held sideways: too short for a bottom dock, so the train and signal move to the right side. */
   @media (orientation: landscape) and (max-height: 500px) {
     .start-dock {
-      left: auto; top: 0; width: min(42vw, 340px); display: flex; flex-direction: column; justify-content: center; gap: 6px;
-      padding: 8px 16px; box-shadow: -6px 0 16px rgba(0,0,0,.12);
+      left: auto; top: 0; width: min(42vw, 340px); display: flex; flex-direction: column; justify-content: flex-end; gap: 6px;
+      padding: 8px 16px var(--deck); box-shadow: none;
     }
     .start-dock > * { width: 100%; }
     .start-train .st-car:first-child { display: none; }
@@ -187,6 +187,36 @@
     #home h2 { font-size: 15px; }
     #home.screen { gap: 6px; padding-top: 8px; }
   }
+
+  /* Start screen scenery: an elevated MRT station on a sunny day. Sky and drifting clouds behind the
+     choices; HDB flats, trees and a concrete viaduct behind the docked train. Images are SVG tiles made
+     in paintStation(); body[data-screen] is set by show(). */
+  body[data-screen="home"] {
+    background: radial-gradient(circle at 88% 6%, rgba(255,246,196,.95) 0 34px, rgba(255,246,196,.35) 35px 70px, transparent 110px),
+      linear-gradient(#6ec1ff, #bfe6ff 55%, #e6f6ff);
+    background-attachment: fixed;
+  }
+  body[data-screen="home"]::before {
+    content: ""; position: fixed; z-index: -1; inset: 6px 0 auto; height: 120px; pointer-events: none;
+    background-image: var(--clouds); background-repeat: repeat-x; background-size: 420px 120px;
+    animation: clouds 90s linear infinite;
+  }
+  @keyframes clouds { to { background-position-x: 420px; } }
+  #home h2 { text-shadow: 0 1px 0 rgba(255,255,255,.7); }
+  #home .pill:not(.sel) { background: rgba(255,255,255,.92); }
+  .start-dock {
+    --deck: calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: var(--deck); box-shadow: none;
+    background:
+      /* viaduct deck with a darker top edge and the piers' shadow lines */
+      linear-gradient(#8e887d 0 5px, transparent 5px) 0 100% / 100% var(--deck) no-repeat,
+      repeating-linear-gradient(90deg, transparent 0 96px, rgba(0,0,0,.13) 96px 112px) 0 100% / 100% var(--deck) no-repeat,
+      linear-gradient(#c3bdb2, #a8a297) 0 100% / 100% var(--deck) no-repeat,
+      /* HDB flats and trees standing behind the train */
+      var(--hdb) 0 calc(100% - var(--deck)) / 480px 230px repeat-x,
+      transparent;
+  }
+  .start-hint { background: rgba(255,255,255,.85); border-radius: 999px; padding: 2px 14px; width: fit-content; margin-inline: auto; }
 
   /* ---------- Game ---------- */
   .topbar { display: flex; align-items: center; gap: 8px; }
@@ -351,6 +381,7 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
+    body[data-screen="home"]::before { animation: none; }
     .pax, .door i { transition: none; }
     .walker span, .pax.pop, .tally.bump { animation: none; }
     .big-emoji, .confetti, .mini-train, .start-train, .start-train.leaving, .start-train.swapping, .signal.green .lamp-go, .signal.go .lamp-go, .signal.nudge, .st-car, .st-wheels i, .start-hint span { animation: none !important; }
@@ -660,6 +691,29 @@
   })();
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // ---- start screen scenery: clouds, HDB flats and trees (SVG tiles set as CSS variables) ----
+  (function paintStation() {
+    const root = document.documentElement.style;
+    const cloud = (x, y, k) => `<g transform="translate(${x} ${y}) scale(${k})" fill="#fff"><ellipse cx="0" cy="12" rx="44" ry="15"/><ellipse cx="-18" cy="4" rx="22" ry="16"/><ellipse cx="14" cy="-2" rx="26" ry="20"/></g>`;
+    root.setProperty("--clouds", svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="420" height="120"><g opacity=".92">${cloud(70, 40, 1)}${cloud(250, 78, .7)}${cloud(370, 30, .55)}</g></svg>`));
+    let hdb = "";
+    const roofs = ["#e07a5f", "#5fa8d3", "#f2c94c", "#81b29a", "#e07a5f", "#b388eb"];
+    [[0, 76, 190], [84, 64, 150], [156, 84, 215], [248, 60, 165], [316, 80, 200], [404, 68, 140]].forEach(([x, w, h], i) => {
+      const top = 230 - h;
+      hdb += `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="#f6f1e8" stroke="#d9d0c1"/>`;
+      hdb += `<rect x="${x - 2}" y="${top - 6}" width="${w + 4}" height="10" rx="2" fill="${roofs[i]}"/>`;
+      for (let y = top + 14; y < 206; y += 13) hdb += `<rect x="${x + 6}" y="${y}" width="${w - 12}" height="5" rx="1" fill="#c6d8e6"/>`;
+      hdb += `<rect x="${x}" y="208" width="${w}" height="22" fill="#d8cfc0"/>`; // void deck
+      for (let px = x + 8; px < x + w - 6; px += 16) hdb += `<rect x="${px}" y="208" width="4" height="22" fill="#bfb4a3"/>`;
+    });
+    [16, 74, 130, 196, 262, 318, 384, 446].forEach((x, i) => {
+      const r = 15 + (i % 3) * 3;
+      hdb += `<rect x="${x - 2}" y="${222 - r}" width="4" height="${r + 8}" fill="#7a5a3a"/><circle cx="${x}" cy="${222 - r}" r="${r}" fill="#4caf50"/><circle cx="${x + r * .55}" cy="${226 - r}" r="${r * .7}" fill="#43a047"/>`;
+    });
+    root.setProperty("--hdb", svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="480" height="230">${hdb}</svg>`));
+  })();
+  document.body.dataset.screen = "home";
+
   // ---- home screen ----
   function renderLines() {
     $("lineList").innerHTML = "";
@@ -685,6 +739,7 @@
   bindPills("modeList", "mode", "mode");
 
   function show(id) {
+    document.body.dataset.screen = id;
     document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
     window.scrollTo(0, 0);
   }
