@@ -138,9 +138,6 @@
   .st-win { flex: 1; height: 34px; border-radius: 4px; border: 2px solid rgba(29,40,52,.3);
     background: linear-gradient(115deg, transparent 0 35%, rgba(255,255,255,.45) 35% 50%, transparent 50%), linear-gradient(#d3e6f3, #8fb1ca); }
   .st-lead { flex: 2; border-radius: 10px 52px 10px 10px; justify-content: space-between; padding-right: 8px; }
-  /* amber lettering like a train's destination sign */
-  .st-text { background: #121b24; box-shadow: inset 0 0 0 2px #2c3a48; border-radius: 4px; padding: 0 8px;
-    color: #ffb21e; font-size: clamp(20px, 5.8vw, 28px); line-height: 34px; font-weight: bold; letter-spacing: .5px; white-space: nowrap; text-shadow: 0 0 6px rgba(255,170,0,.6); }
   .st-cab { flex: none; width: 34px; height: 46px; margin-top: -5px; background: linear-gradient(150deg, rgba(255,255,255,.55) 0 14%, transparent 14% 24%, rgba(255,255,255,.25) 24% 29%, transparent 29%), linear-gradient(#9cbdd5, #3d5c74); border-radius: 6px 30px 4px 6px; }
   .st-wheels { position: absolute; left: 7%; right: 7%; bottom: 2px; display: flex; justify-content: space-between; }
   .st-wheels i {
@@ -337,9 +334,9 @@
   <div class="start-dock">
     <p class="start-hint" id="startHint" aria-live="polite">Wait for the green light…</p>
     <div class="start-track">
-      <button class="start-train" id="goBtn" aria-label="All aboard! Tap the train to start">
+      <button class="start-train" id="goBtn" aria-label="Tap the train to start">
         <span class="st-car" aria-hidden="true"><i class="st-win"></i><i class="st-win"></i></span>
-        <span class="st-car st-lead"><span class="st-text">All aboard!</span><i class="st-cab" aria-hidden="true"></i></span>
+        <span class="st-car st-lead" aria-hidden="true"><i class="st-win"></i><i class="st-win"></i><i class="st-cab"></i></span>
         <span class="st-wheels" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
       </button>
       <!-- railway signal: red while the train pulls in, amber as it brakes, green GO when it has stopped -->
