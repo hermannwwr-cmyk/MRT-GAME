@@ -149,24 +149,22 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Compact start screen: everything fits on one page above the dock, centred in the space left. */
-  #home.screen { gap: 8px; padding-top: 10px; min-height: 100vh; min-height: 100dvh; justify-content: center; }
+  #home.screen { gap: 10px; padding-top: 12px; min-height: 100vh; min-height: 100dvh; justify-content: center; }
   #home h2 { font-size: 18px; margin: 0; }
   #home .lines { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   #home .line-btn {
-    min-height: 0; height: 70px; padding: 6px 6px; border-radius: 16px; text-align: center;
+    min-height: 0; height: 78px; padding: 8px 6px; border-radius: 16px; text-align: center;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   }
   #home .line-btn .code { font-size: 28px; line-height: 1; }
   #home .line-btn .name { font-size: 12px; line-height: 1.15; }
   #home .line-btn .badge { top: 3px; right: 6px; font-size: 16px; }
   #home .choices { flex-wrap: nowrap; gap: 8px; }
-  #home .pill { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-size: 18px; border-radius: 16px; }
+  #home .pill { flex: 1 1 0; min-width: 0; padding: 12px 4px; font-size: 18px; border-radius: 16px; }
   #home .pill small { font-size: 12px; }
   #home .start-hint { font-size: 16px; }
   @media (max-height: 600px) {
-    #home.screen { gap: 5px; }
-    #home .line-btn { height: 50px; }
-    #home .pill small { display: none; }
+    #home .line-btn { height: 62px; }
     #home .line-btn .code { font-size: 22px; }
     #home .line-btn .name { font-size: 10px; }
     #home .pill { padding: 8px 2px; font-size: 15px; }
@@ -450,13 +448,6 @@
     <button class="pill" data-mode="mix">🔀 Both<small>mixed</small></button>
   </div>
 
-  <h2>3. How far?</h2>
-  <div class="choices" id="tripList">
-    <button class="pill" data-trip="short">🐢 Short<small>5 stops</small></button>
-    <button class="pill sel" data-trip="normal">🚆 Normal<small>10 stops</small></button>
-    <button class="pill" data-trip="long">🚀 Long<small>to the end</small></button>
-  </div>
-
   <div class="start-dock">
     <div class="dock-row">
       <button class="start-chip" id="startPick" aria-label="Choose the station to start from">📍 Jurong East</button>
@@ -580,7 +571,6 @@
   // STOPS[name] = every line (and index) that stops there, so interchanges are easy to find.
   const STOPS = {};
   LINES.forEach(L => L.stations.forEach((n, i) => (STOPS[n] ??= []).push({ L, i })));
-  const TRIP_STOPS = { short: 5, normal: 10, long: Infinity };
   const PEOPLE = ["🧑","👩","👨","🧒","👧","👦","👵","👴","🧕","👱","🧔","👩‍🦱","👨‍🦳","🧑‍🦰"];
   const CHEERS = ["Great job!", "Well done!", "Super!", "You got it!", "Shiok!", "Awesome!", "Fantastic!"];
 
@@ -600,7 +590,7 @@
 
   // ---- state ----
   const S = {
-    gen: 0, line: LINES[0], mode: "add", trip: "normal", startIdx: 0, startDir: 1,
+    gen: 0, line: LINES[0], mode: "add", startIdx: 0, startDir: 1,
     at: 0, dir: 1, from: 0, left: 10, asked: 0, stars: 0, surprises: 0, trail: new Set(), home: null,
     q: null, tries: 0, busy: false, counted: 0, last: "", surpriseNow: false,
   };
@@ -831,7 +821,6 @@
     });
   }
   bindPills("modeList", "mode", "mode");
-  bindPills("tripList", "trip", "trip");
 
   function show(id) {
     document.body.dataset.screen = id;
@@ -865,7 +854,7 @@
     S.at = S.from = S.startIdx;
     S.dir = S.startDir;
     if (!st[S.at + S.dir]) S.dir = -S.dir; // at the end of the line: go the other way
-    S.left = TRIP_STOPS[S.trip] ?? 10;
+    S.left = Infinity; // every ride goes to the end of the line (or on, after changing at an interchange)
     S.asked = 0; S.stars = 0; S.surprises = 0; S.last = "";
     S.trail = new Set([st[S.at]]);
     document.documentElement.style.setProperty("--line", S.line.color);
