@@ -4,6 +4,10 @@ A Singapore MRT math game for kids around age 6: single-digit addition and subtr
 
 **Play:** open `index.html` in any browser (phone, tablet or computer). No install or internet needed.
 
+**Watch:** [30-second gameplay video](media/mrt-math-express-gameplay.mp4)
+
+<img src="media/screenshot.png" alt="A train at Bishan station: 6 + 2 = 8, answered correctly" width="300">
+
 ## How it plays
 1. Pick an MRT line: NS, EW, NE, CC, DT or TE (real station names, in order).
 2. Pick **➕ Get on** (adding), **➖ Get off** (taking away) or **🔀 Both**.

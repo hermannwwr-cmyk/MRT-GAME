@@ -216,6 +216,18 @@
   .confetti { position: fixed; top: -40px; font-size: 28px; pointer-events: none; animation: fall linear forwards; z-index: 9; }
   @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
 
+  /* short phone screens: tighten the game screen so the answers fit */
+  @media (max-height: 700px) {
+    #game.screen.active { gap: 8px; padding-block: 10px; }
+    .route { height: 46px; }
+    .scene { padding-top: 46px; min-height: 0; }
+    .window { min-height: 70px; }
+    .platform { min-height: 54px; }
+    .story { font-size: 17px; }
+    .equation { font-size: clamp(36px, 11vw, 60px); }
+    .ans { font-size: clamp(34px, 10vw, 52px); padding: 6px 0; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .pax, .door i { transition: none; }
     .walker span, .pax.pop, .tally.bump { animation: none; }
@@ -725,6 +737,9 @@
       box.appendChild(b);
     });
     S.busy = false;
+    // On short screens the buttons can sit below the fold: bring them into view.
+    const r = box.getBoundingClientRect();
+    if (r.bottom > innerHeight) box.scrollIntoView({ block: "end", behavior: reduceMotion ? "auto" : "smooth" });
     say(askLine());
   }
 

@@ -12,6 +12,8 @@ The project has no build, dependencies, package manager, linter or test suite. T
 
 - **Run:** open `index.html` in a browser.
 - **Check a change:** drive the game headlessly with Playwright, which is pre-installed in the cloud container (`require('playwright')`). Load `file:///…/index.html`, click `#goBtn`, then for each question wait for `#answers .ans` to appear (it's empty while passengers walk and the train rides, which can take up to about 15 s), read `#equation` (the minus sign is `−`, U+2212) and click the matching `.ans`. Listen for `pageerror`. A full line is 9 questions and ends on the `#end` screen. A syntax error blanks the whole page, so extract the `<script>` body and run `node --check` on it after big edits. Save screenshots and test scripts in a scratch directory, not the repo.
+- Test small phones too (Playwright's `iPhone SE` is 320×568). A `max-height: 700px` media query tightens the game screen, and `arrive()` scrolls the answer buttons into view if they're below the fold.
+- `media/` holds the README's gameplay video and screenshot. They aren't used by the game.
 - Headless browsers can't play audio. To check sound, count `OscillatorNode.prototype.start` calls instead.
 
 ## Architecture (inside `index.html`)
