@@ -16,6 +16,12 @@ The project has no build, dependencies, package manager, linter or test suite. T
 - `media/` holds the README's gameplay video and screenshot. They aren't used by the game.
 - Headless browsers can't play audio. To check sound, count `OscillatorNode.prototype.start` calls instead.
 
+## Publishing
+
+- `main` is published on GitHub Pages at https://hermannwwr-cmyk.github.io/MRT-GAME/. Every merge to `main` goes live within a minute or two.
+- The owner has asked for pull requests to be merged automatically. After a change passes the Playwright checks, open a PR into `main`, merge it, and confirm the "pages build and deployment" workflow run succeeds. Then start the next change from the latest `main`.
+- `github.io` may be blocked by the container's network. If it is, confirm the deployment through the workflow run.
+
 ## Architecture (inside `index.html`)
 
 - **Three screens:** `<section class="screen">` elements with the ids `home`, `game` and `end`. `show(id)` switches between them.
