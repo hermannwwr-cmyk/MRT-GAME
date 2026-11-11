@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MRT Math Express</title>
+<style>
+  :root {
+    --bg: #eaf6ff;
+    --ink: #1d2b3a;
+    --muted: #5b6b7c;
+    --card: #ffffff;
+    --line: #D42E12;
+    --good: #2fa84f;
+    --bad: #e0574a;
+    --platform: #c9d3dc;
+    --shadow: 0 4px 0 rgba(0,0,0,.15);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Comic Sans MS", "Chalkboard SE", "Baloo 2", system-ui, sans-serif;
+    user-select: none;
+    overflow-x: hidden;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+  .screen { display: none; min-height: 100%; padding: 16px; max-width: 760px; margin: 0 auto; }
+  .screen.active { display: flex; flex-direction: column; gap: 14px; }
+
+  /* ---------- Home ---------- */
+  h1 { font-size: clamp(28px, 7vw, 44px); margin: 8px 0 0; text-align: center; }
+  .sub { text-align: center; color: var(--muted); margin: 0; font-size: 18px; }
+  h2 { font-size: 20px; margin: 6px 0 0; }
+  .lines { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+  .line-btn {
+    background: var(--c); color: #fff; border-radius: 18px; padding: 14px 12px;
+    text-align: left; box-shadow: var(--shadow); position: relative; min-height: 76px;
+    outline: 4px solid transparent; outline-offset: 3px; transition: transform .1s;
+  }
+  .line-btn .code { font-size: 26px; font-weight: bold; display: block; }
+  .line-btn .name { font-size: 14px; opacity: .95; }
+  .line-btn .badge { position: absolute; top: 8px; right: 10px; font-size: 20px; }
+  .line-btn.sel { outline-color: var(--ink); transform: scale(1.03); }
+  .choices { display: flex; gap: 10px; flex-wrap: wrap; }
+  .pill {
+    flex: 1 1 140px; background: var(--card); border-radius: 18px; padding: 14px 10px;
+    font-size: 20px; box-shadow: var(--shadow); outline: 4px solid transparent; outline-offset: 2px;
+  }
+  .pill small { display: block; font-size: 13px; color: var(--muted); }
+  .pill.sel { outline-color: var(--ink); background: #fff7d6; }
+  .go {
+    background: var(--good); color: #fff; font-size: 30px; border-radius: 24px; padding: 16px;
+    box-shadow: 0 6px 0 #1f7a37; margin-top: 6px;
+  }
+  .go:active { transform: translateY(4px); box-shadow: 0 2px 0 #1f7a37; }
+
+  /* ---------- Game ---------- */
+  .topbar { display: flex; align-items: center; gap: 8px; }
+  .icon-btn { background: var(--card); border-radius: 14px; width: 48px; height: 48px; font-size: 24px; box-shadow: var(--shadow); flex: none; }
+  .title-chip { flex: 1; background: var(--line); color: #fff; border-radius: 14px; padding: 10px 8px; font-size: 16px; font-weight: bold; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stars { font-size: 20px; background: var(--card); border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow); white-space: nowrap; }
+
+  .route { position: relative; height: 54px; margin: 4px 10px 0; }
+  .route .track { position: absolute; left: 0; right: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); opacity: .35; }
+  .route .done { position: absolute; left: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); transition: width .9s ease; }
+  .route .dot { position: absolute; top: 12px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #fff; border: 4px solid var(--line); }
+  .route .dot.passed { background: var(--line); }
+  .route .marker { position: absolute; top: -6px; margin-left: -16px; font-size: 28px; transition: left .9s ease; }
+  .route .ends { position: absolute; top: 36px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .route .ends span { max-width: 45%; }
+
+  .sign {
+    align-self: center; background: #10253a; color: #fff; border-radius: 12px; padding: 8px 18px;
+    font-size: 20px; display: flex; gap: 10px; align-items: center; border-bottom: 5px solid var(--line);
+  }
+  .sign .lbl { color: #9fb6cc; font-size: 14px; }
+
+  .scene { position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(#bfe3ff, #e8f5ff 60%); padding: 14px 10px 0; min-height: 260px; }
+  .train {
+    position: relative; margin: 0 auto; width: min(100%, 560px);
+    background: #f4f6f8; border-radius: 26px 60px 14px 14px; padding: 12px 54px 22px 14px;
+    box-shadow: inset 0 -10px 0 rgba(0,0,0,.06), 0 4px 0 rgba(0,0,0,.12);
+    transition: transform .9s ease-in;
+  }
+  .train::before { content: ""; position: absolute; left: 0; right: 0; bottom: 12px; height: 10px; background: var(--line); }
+  .train::after { content: ""; position: absolute; right: 12px; top: 16px; width: 30px; height: 40px; background: #2a3b4d; border-radius: 6px 22px 6px 6px; }
+  .train.leave { transform: translateX(120%); }
+  .train.arrive { transform: translateX(-120%); transition: none; }
+  .wheels { display: flex; justify-content: space-between; width: min(100%, 560px); margin: -10px auto 0; padding: 0 40px; position: relative; z-index: 1; }
+  .wheels i { width: 26px; height: 26px; border-radius: 50%; background: #333; border: 5px solid #777; }
+  .window {
+    background: #cfe9ff; border-radius: 12px; min-height: 92px; padding: 6px;
+    display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 2px;
+    border: 4px solid #8aa2b8;
+  }
+  .rail { height: 10px; background: repeating-linear-gradient(90deg, #6b5b4b 0 18px, #8b7b6b 18px 30px); margin-top: 6px; }
+  .platform { background: var(--platform); border-top: 6px solid #f2c94c; min-height: 72px; padding: 8px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: center; }
+  .platform .note { color: var(--muted); font-size: 15px; }
+
+  .pax {
+    position: relative; font-size: clamp(24px, 6vw, 34px); line-height: 1; padding: 2px; border-radius: 10px;
+    background: none; transition: transform .5s, opacity .5s;
+  }
+  .pax.board { background: #fff2b3; box-shadow: 0 0 0 3px #f2c94c inset; }
+  .pax.leaving { background: #ffd9d4; box-shadow: 0 0 0 3px var(--bad) inset; }
+  .pax.leaving::after { content: "👋"; position: absolute; right: -6px; top: -10px; font-size: 16px; }
+  .pax .n { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 6px; }
+  .pax.gone { opacity: 0; transform: translateY(60px); }
+  .pax.hop { transform: translateY(-80px); opacity: 0; }
+
+  .story { text-align: center; font-size: 19px; margin: 0; line-height: 1.35; }
+  .equation { text-align: center; font-size: clamp(44px, 13vw, 72px); font-weight: bold; letter-spacing: 2px; margin: 0; }
+  .equation .q { display: inline-block; min-width: 1.1em; color: var(--line); border-bottom: 6px dashed var(--line); }
+  .answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .ans {
+    background: var(--card); border-radius: 22px; font-size: clamp(40px, 12vw, 60px); font-weight: bold;
+    padding: 10px 0; box-shadow: 0 6px 0 rgba(0,0,0,.18); border: 4px solid var(--line);
+  }
+  .ans:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  .ans.wrong { background: #ffe1dd; border-color: var(--bad); opacity: .5; animation: shake .4s; }
+  .ans.right { background: #d9f7e1; border-color: var(--good); }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .feedback { text-align: center; font-size: 22px; min-height: 30px; margin: 0; font-weight: bold; }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+  .tip { text-align: center; color: var(--muted); font-size: 14px; margin: 0; }
+
+  /* ---------- End ---------- */
+  #end { text-align: center; justify-content: center; }
+  #end .pill { flex: none; }
+  .big-emoji { font-size: 90px; animation: bounce 1s infinite alternate; }
+  @keyframes bounce { to { transform: translateY(-14px); } }
+  .end-stars { font-size: 34px; letter-spacing: 2px; word-break: break-all; }
+  .confetti { position: fixed; top: -40px; font-size: 28px; pointer-events: none; animation: fall linear forwards; z-index: 9; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .train, .route .done, .route .marker, .pax { transition: none; }
+    .big-emoji, .confetti { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HOME -->
+<section id="home" class="screen active">
+  <h1>🚆 MRT Math Express</h1>
+  <p class="sub">Ride the train. Help the passengers. Count to the last stop!</p>
+
+  <h2>1. Pick your MRT line</h2>
+  <div class="lines" id="lineList"></div>
+
+  <h2>2. What happens at each station?</h2>
+  <div class="choices" id="modeList">
+    <button class="pill sel" data-mode="add">➕ Get on<small>adding</small></button>
+    <button class="pill" data-mode="sub">➖ Get off<small>taking away</small></button>
+    <button class="pill" data-mode="mix">🔀 Both<small>mixed</small></button>
+  </div>
+
+  <h2>3. How hard?</h2>
+  <div class="choices" id="levelList">
+    <button class="pill sel" data-level="easy">🐣 Easy<small>numbers up to 10</small></button>
+    <button class="pill" data-level="hard">🦁 Challenge<small>numbers up to 18</small></button>
+  </div>
+
+  <button class="go" id="goBtn">All aboard! 🚆</button>
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="icon-btn" id="homeBtn" aria-label="Back to start">🏠</button>
+    <div class="title-chip" id="lineTitle">North South Line</div>
+    <div class="stars" id="starCount">⭐ 0</div>
+    <button class="icon-btn" id="soundBtn" aria-label="Sound on or off">🔊</button>
+  </div>
+
+  <div class="route" id="route"></div>
+
+  <div class="sign"><span class="lbl">Now at</span><span id="stationName">Station</span></div>
+
+  <div class="scene">
+    <div class="train" id="train"><div class="window" id="carriage"></div></div>
+    <div class="wheels"><i></i><i></i><i></i><i></i></div>
+    <div class="rail"></div>
+    <div class="platform" id="platform"></div>
+  </div>
+
+  <p class="story" id="story"></p>
+  <p class="equation" id="equation"></p>
+  <div class="answers" id="answers"></div>
+  <p class="feedback" id="feedback"></p>
+  <p class="tip">Tip: tap the people to count them! Tap 🔊 to hear the question.</p>
+  <button class="icon-btn" id="sayBtn" style="align-self:center;width:auto;padding:0 18px" aria-label="Read the question aloud">🔊 Hear it again</button>
+</section>
+
+<!-- END -->
+<section id="end" class="screen">
+  <div class="big-emoji">🏆</div>
+  <h1 id="endTitle">You made it!</h1>
+  <p class="sub" id="endText"></p>
+  <div class="end-stars" id="endStars"></div>
+  <button class="go" id="againBtn">Ride again 🔁</button>
+  <button class="pill" id="otherBtn">🗺️ Choose another line</button>
+</section>
+
+<script>
+(() => {
+  // Real station names (in order) for a short trip on each line.
+  const LINES = [
+    { id: "NS", name: "North South Line", color: "#D42E12",
+      stations: ["Woodlands", "Yishun", "Ang Mo Kio", "Bishan", "Toa Payoh", "Novena", "Newton", "Orchard", "City Hall", "Marina Bay"] },
+    { id: "EW", name: "East West Line", color: "#009645",
+      stations: ["Pasir Ris", "Tampines", "Bedok", "Paya Lebar", "Bugis", "City Hall", "Raffles Place", "Outram Park", "Clementi", "Jurong East"] },
+    { id: "NE", name: "North East Line", color: "#9900AA",
+      stations: ["HarbourFront", "Outram Park", "Chinatown", "Dhoby Ghaut", "Little India", "Farrer Park", "Serangoon", "Hougang", "Sengkang", "Punggol"] },
+    { id: "CC", name: "Circle Line", color: "#E8930C",
+      stations: ["Dhoby Ghaut", "Promenade", "Stadium", "Paya Lebar", "Serangoon", "Bishan", "Botanic Gardens", "Buona Vista", "Kent Ridge", "HarbourFront"] },
+    { id: "DT", name: "Downtown Line", color: "#005EC4",
+      stations: ["Bukit Panjang", "Beauty World", "Botanic Gardens", "Newton", "Little India", "Bugis", "Promenade", "Bayfront", "Chinatown", "Expo"] },
+    { id: "TE", name: "Thomson-East Coast Line", color: "#9D5B25",
+      stations: ["Woodlands North", "Woodlands", "Springleaf", "Caldecott", "Stevens", "Orchard", "Great World", "Outram Park", "Maxwell", "Marina Bay"] },
+  ];
+  const PEOPLE = ["🧑","👩","👨","🧒","👧","👦","👵","👴","🧕","👱","🧔","👩‍🦱","👨‍🦳","🧑‍🦰"];
+  const CHEERS = ["Great job!", "Well done!", "Super!", "You got it!", "Shiok!", "Awesome!", "Fantastic!"];
+
+  const $ = id => document.getElementById(id);
+  const rand = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = arr => { for (let i = arr.length - 1; i > 0; i--) { const j = rand(0, i); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; };
+
+  // ---- saved progress (best-effort) ----
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  };
+  let badges = store.get("mrtBadges", {});
+  let soundOn = store.get("mrtSound", true);
+
+  // ---- state ----
+  const S = { line: LINES[0], mode: "add", level: "easy", stop: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
+
+  // ---- audio ----
+  let ac;
+  function tone(freq, start, dur, type = "sine", vol = 0.18) {
+    if (!soundOn) return;
+    try {
+      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = freq;
+      const t = ac.currentTime + start;
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(ac.destination); o.start(t); o.stop(t + dur + 0.05);
+    } catch {}
+  }
+  const sfx = {
+    chime() { tone(784, 0, .5); tone(659, .35, .5); tone(523, .7, .7); },
+    right() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .09, .25, "triangle")); },
+    wrong() { tone(220, 0, .3, "sine", .12); },
+    tick() { tone(880, 0, .08, "square", .05); },
+  };
+  function say(text) {
+    if (!soundOn || !("speechSynthesis" in window)) return;
+    try {
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.9; u.pitch = 1.1;
+      const v = speechSynthesis.getVoices().find(v => /en[-_](SG|GB|AU)/i.test(v.lang)) || speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
+      if (v) u.voice = v;
+      speechSynthesis.speak(u);
+    } catch {}
+  }
+
+  // ---- home screen ----
+  function renderLines() {
+    $("lineList").innerHTML = "";
+    LINES.forEach(L => {
+      const b = document.createElement("button");
+      b.className = "line-btn" + (L === S.line ? " sel" : "");
+      b.style.setProperty("--c", L.color);
+      b.innerHTML = `<span class="code">${L.id}</span><span class="name">${L.name}</span>${badges[L.id] ? `<span class="badge" title="Completed">🏅</span>` : ""}`;
+      b.onclick = () => { S.line = L; renderLines(); sfx.tick(); };
+      $("lineList").appendChild(b);
+    });
+  }
+  function bindPills(listId, key, attr) {
+    $(listId).querySelectorAll(".pill").forEach(p => p.onclick = () => {
+      $(listId).querySelectorAll(".pill").forEach(x => x.classList.remove("sel"));
+      p.classList.add("sel"); S[key] = p.dataset[attr]; sfx.tick();
+    });
+  }
+  bindPills("modeList", "mode", "mode");
+  bindPills("levelList", "level", "level");
+
+  function show(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.toggle("active", s.id === id));
+    window.scrollTo(0, 0);
+  }
+
+  // ---- questions ----
+  function makeQuestion() {
+    const op = S.mode === "mix" ? pick(["+", "-"]) : (S.mode === "add" ? "+" : "-");
+    const easy = S.level === "easy";
+    let a, b, key, guard = 0;
+    do {
+      if (op === "+") {
+        a = rand(1, 9); b = rand(1, 9);
+        if (easy && a + b > 10) { b = rand(1, 10 - a || 1); if (a + b > 10) { a = 5; b = rand(1, 5); } }
+      } else {
+        if (easy) { a = rand(2, 10); b = rand(1, Math.min(9, a)); }
+        else { a = rand(6, 18); b = rand(Math.max(1, a - 9), 9); }
+      }
+      key = a + op + b;
+    } while (key === S.last && guard++ < 20);
+    S.last = key;
+    const ans = op === "+" ? a + b : a - b;
+    const opts = new Set([ans]);
+    const near = shuffle([-2, -1, 1, 2, 3, -3]);
+    for (const d of near) { if (opts.size >= 3) break; const v = ans + d; if (v >= 0 && v <= 18) opts.add(v); }
+    return { a, b, op, ans, opts: shuffle([...opts]) };
+  }
+
+  // ---- game ----
+  function startGame() {
+    S.stop = 0; S.stars = 0; S.last = "";
+    document.documentElement.style.setProperty("--line", S.line.color);
+    $("lineTitle").textContent = S.line.name;
+    $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    renderRoute();
+    show("game");
+    nextQuestion(true);
+  }
+
+  function renderRoute() {
+    const st = S.line.stations, n = st.length - 1;
+    const pct = i => (i / n) * 100;
+    let html = `<div class="track"></div><div class="done" style="width:${pct(S.stop)}%"></div>`;
+    st.forEach((_, i) => { html += `<div class="dot ${i <= S.stop ? "passed" : ""}" style="left:${pct(i)}%"></div>`; });
+    html += `<div class="marker" style="left:${pct(S.stop)}%">🚆</div>`;
+    html += `<div class="ends"><span>${st[0]}</span><span style="text-align:right">${st[n]}</span></div>`;
+    $("route").innerHTML = html;
+  }
+
+  function personEl(cls) {
+    const s = document.createElement("button");
+    s.className = "pax" + (cls ? " " + cls : "");
+    s.textContent = pick(PEOPLE);
+    s.onclick = () => countTap(s);
+    return s;
+  }
+
+  function countTap(el) {
+    if (el.querySelector(".n")) return;
+    S.counted++;
+    const n = document.createElement("span");
+    n.className = "n"; n.textContent = S.counted;
+    el.appendChild(n);
+    sfx.tick();
+    say(String(S.counted));
+  }
+
+  function nextQuestion(first) {
+    const q = S.q = makeQuestion();
+    S.tries = 0; S.busy = false; S.counted = 0;
+    const station = S.line.stations[S.stop + 1];
+    $("stationName").textContent = station;
+    $("feedback").textContent = ""; $("feedback").className = "feedback";
+
+    const car = $("carriage"), plat = $("platform");
+    car.innerHTML = ""; plat.innerHTML = "";
+    if (q.op === "+") {
+      for (let i = 0; i < q.a; i++) car.appendChild(personEl());
+      for (let i = 0; i < q.b; i++) plat.appendChild(personEl("board"));
+      $("story").innerHTML = `There ${q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`} on the train.<br><b>${q.b}</b> more get on at <b>${station}</b>. How many now?`;
+    } else {
+      const idx = shuffle([...Array(q.a).keys()]).slice(0, q.b);
+      for (let i = 0; i < q.a; i++) car.appendChild(personEl(idx.includes(i) ? "leaving" : ""));
+      plat.innerHTML = `<span class="note">Platform – mind the gap!</span>`;
+      $("story").innerHTML = `There are <b>${q.a}</b> people on the train.<br><b>${q.b}</b> get off at <b>${station}</b>. How many are left?`;
+    }
+    $("equation").innerHTML = `${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = <span class="q">?</span>`;
+
+    const box = $("answers"); box.innerHTML = "";
+    q.opts.forEach(v => {
+      const b = document.createElement("button");
+      b.className = "ans"; b.textContent = v;
+      b.onclick = () => answer(v, b);
+      box.appendChild(b);
+    });
+
+    // train arrives
+    const train = $("train");
+    train.classList.remove("leave"); train.classList.add("arrive");
+    void train.offsetWidth; train.classList.remove("arrive");
+    if (!first) sfx.chime();
+    setTimeout(speakQ, first ? 200 : 1300);
+  }
+
+  function speakQ() {
+    const q = S.q, st = S.line.stations[S.stop + 1];
+    say(q.op === "+"
+      ? `${q.a} on the train. ${q.b} more get on at ${st}. What is ${q.a} plus ${q.b}?`
+      : `${q.a} on the train. ${q.b} get off at ${st}. What is ${q.a} take away ${q.b}?`);
+  }
+
+  function answer(v, btn) {
+    if (S.busy) return;
+    const q = S.q;
+    if (v !== q.ans) {
+      S.tries++;
+      btn.classList.add("wrong"); btn.disabled = true;
+      sfx.wrong();
+      $("feedback").className = "feedback bad";
+      $("feedback").textContent = S.tries === 1 ? "Oops! Try again 🙂 Count the people." : `Hint: ${q.op === "+" ? `start at ${q.a}, count up ${q.b}` : `start at ${q.a}, count back ${q.b}`}.`;
+      say(S.tries === 1 ? "Try again!" : $("feedback").textContent);
+      return;
+    }
+    S.busy = true;
+    btn.classList.add("right");
+    if (S.tries === 0) S.stars++;
+    $("starCount").textContent = `⭐ ${S.stars}`;
+    $("equation").innerHTML = `${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = <span class="q" style="border-color:var(--good);color:var(--good)">${q.ans}</span>`;
+    $("feedback").className = "feedback good";
+    const cheer = pick(CHEERS);
+    $("feedback").textContent = `${cheer} ${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = ${q.ans} ${S.tries === 0 ? "⭐" : ""}`;
+    sfx.right();
+    say(`${cheer} ${q.a} ${q.op === "+" ? "plus" : "take away"} ${q.b} is ${q.ans}.`);
+
+    // passengers move
+    if (q.op === "+") {
+      $("platform").querySelectorAll(".pax").forEach((p, i) => setTimeout(() => {
+        p.classList.add("hop");
+        setTimeout(() => { p.classList.remove("hop", "board"); $("carriage").appendChild(p); }, 350);
+      }, i * 120));
+    } else {
+      $("carriage").querySelectorAll(".pax.leaving").forEach((p, i) => setTimeout(() => p.classList.add("gone"), i * 120));
+    }
+
+    setTimeout(() => {
+      S.stop++;
+      renderRoute();
+      $("train").classList.add("leave");
+      if (S.stop >= S.line.stations.length - 1) setTimeout(finish, 1000);
+      else setTimeout(() => nextQuestion(false), 1000);
+    }, 2200);
+  }
+
+  function finish() {
+    const total = S.line.stations.length - 1;
+    const last = S.line.stations[total];
+    badges[S.line.id] = Math.max(badges[S.line.id] || 0, S.stars);
+    store.set("mrtBadges", badges);
+    $("endTitle").textContent = `You reached ${last}!`;
+    $("endText").textContent = `You helped the passengers on the ${S.line.name}. You got ${S.stars} out of ${total} stars on the first try!`;
+    $("endStars").textContent = "⭐".repeat(S.stars) + "☆".repeat(total - S.stars);
+    show("end");
+    sfx.chime(); setTimeout(sfx.right, 900);
+    say(`Hooray! You reached ${last}! You got ${S.stars} stars!`);
+    for (let i = 0; i < 30; i++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.textContent = pick(["🎉","⭐","🎈","🚆","✨"]);
+      c.style.left = rand(0, 95) + "vw";
+      c.style.animationDuration = rand(25, 45) / 10 + "s";
+      c.style.animationDelay = rand(0, 15) / 10 + "s";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 6500);
+    }
+  }
+
+  // ---- wiring ----
+  $("goBtn").onclick = startGame;
+  $("againBtn").onclick = startGame;
+  $("otherBtn").onclick = () => { renderLines(); show("home"); };
+  $("homeBtn").onclick = () => { try { speechSynthesis.cancel(); } catch {} renderLines(); show("home"); };
+  $("sayBtn").onclick = speakQ;
+  $("soundBtn").onclick = () => {
+    soundOn = !soundOn; store.set("mrtSound", soundOn);
+    $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
+    if (!soundOn) try { speechSynthesis.cancel(); } catch {}
+  };
+
+  renderLines();
+})();
+</script>
+</body>
+</html>
