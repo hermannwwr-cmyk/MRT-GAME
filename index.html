@@ -127,8 +127,25 @@
   .pax.leaving { background: #ffd9d4; box-shadow: 0 0 0 3px var(--bad) inset; }
   .pax.leaving::after { content: "👋"; position: absolute; right: -6px; top: -10px; font-size: 16px; }
   .pax .n { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 6px; }
-  .pax.gone { opacity: 0; transform: translateY(60px); }
-  .pax.hop { transform: translateY(-80px); opacity: 0; }
+  .pax.pop { animation: pop .4s ease-out; }
+  @keyframes pop { from { transform: scale(0); } 60% { transform: scale(1.3); } to { transform: scale(1); } }
+
+  /* a passenger walking between the platform and a train door */
+  .walker { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none; }
+  .walker span { display: inline-block; animation: waddle .26s ease-in-out infinite alternate; }
+  .walker.bye::after { content: "👋"; position: absolute; right: -10px; top: -12px; font-size: 16px; }
+  @keyframes waddle { from { transform: rotate(-8deg) translateY(0); } to { transform: rotate(8deg) translateY(-5px); } }
+
+  /* running count above the train while people get on/off */
+  .tally {
+    position: absolute; z-index: 2; top: 10px; left: 50%; transform: translateX(-50%);
+    background: #fff; color: var(--line); border-radius: 999px; padding: 4px 20px; font-size: 30px; font-weight: bold;
+    box-shadow: var(--shadow); opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
+  }
+  .tally.show { opacity: 1; }
+  .tally.done { color: var(--good); outline: 4px solid var(--good); }
+  .tally.bump { animation: bump .3s; }
+  @keyframes bump { 50% { transform: translateX(-50%) scale(1.3); } }
 
   /* little train running along a track (home + end screens) */
   .mini-track { position: relative; height: 40px; overflow: hidden; border-bottom: 6px solid #8b7b6b; }
@@ -165,6 +182,7 @@
 
   @media (prefers-reduced-motion: reduce) {
     .pax, .door i { transition: none; }
+    .walker span, .pax.pop, .tally.bump { animation: none; }
     .big-emoji, .confetti, .mini-train { animation: none; }
   }
 </style>
@@ -218,6 +236,7 @@
     <div class="wheels" id="wheels"><i></i><i></i><i></i><i></i></div>
     <div class="rail" id="rail"></div>
     <div class="platform" id="platform"></div>
+    <div class="tally" id="tally"></div>
     <div class="tunnel" id="tunnel"></div>
   </div>
 
@@ -470,6 +489,7 @@
     $("carriage").innerHTML = "";
     $("platform").innerHTML = `<span class="note">All aboard at ${S.line.stations[0]}! 🚆</span>`;
     $("train").classList.add("open");
+    $("tally").classList.remove("show");
     show("game");
     setTimeout(() => gen === S.gen && depart(), 1200);
   }
@@ -488,7 +508,7 @@
   function personEl(cls) {
     const s = document.createElement("button");
     s.className = "pax" + (cls ? " " + cls : "");
-    s.textContent = pick(PEOPLE);
+    s.textContent = s.dataset.face = pick(PEOPLE);
     s.onclick = () => countTap(s);
     return s;
   }
@@ -509,6 +529,7 @@
     S.busy = true;
     S.q = makeQuestion();
     const next = S.line.stations[S.at + 1];
+    $("tally").classList.remove("show", "done");
     $("story").innerHTML = `Doors closing… Next station: <b>${next}</b>`;
     $("equation").innerHTML = ""; $("answers").innerHTML = "";
     $("feedback").textContent = ""; $("feedback").className = "feedback";
@@ -633,24 +654,118 @@
     const cheer = pick(CHEERS);
     $("feedback").textContent = `${cheer} ${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = ${q.ans} ${S.tries === 0 ? "⭐" : ""}`;
     sfx.right();
-    say(`${cheer} ${q.a} ${q.op === "+" ? "plus" : "take away"} ${q.b} is ${q.ans}.`);
-
-    // passengers move
-    if (q.op === "+") {
-      $("platform").querySelectorAll(".pax").forEach((p, i) => setTimeout(() => {
-        p.classList.add("hop");
-        setTimeout(() => { p.classList.remove("hop", "board"); $("carriage").appendChild(p); }, 350);
-      }, i * 120));
-    } else {
-      $("carriage").querySelectorAll(".pax.leaving").forEach((p, i) => setTimeout(() => p.classList.add("gone"), i * 120));
-    }
+    say(cheer);
+    document.querySelectorAll("#scene .pax .n").forEach(n => n.remove()); // clear tap-to-count numbers
 
     const gen = S.gen;
-    setTimeout(() => {
+    movePassengers(q, gen).then(() => {
       if (gen !== S.gen) return;
-      if (S.at >= S.line.stations.length - 1) finish();
-      else depart();
-    }, 2000);
+      setTally(q.ans, true);
+      say(`${q.a} ${q.op === "+" ? "plus" : "take away"} ${q.b} is ${q.ans}!`);
+      setTimeout(() => {
+        if (gen !== S.gen) return;
+        if (S.at >= S.line.stations.length - 1) finish();
+        else depart();
+      }, 2600);
+    });
+  }
+
+  // ---- passengers walking on and off ----
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const slow = ms => reduceMotion ? ms * 0.25 : ms;
+
+  // Where an element sits inside the scene, in px.
+  function rel(el) {
+    const s = $("scene").getBoundingClientRect(), b = el.getBoundingClientRect();
+    return { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, fs: getComputedStyle(el).fontSize };
+  }
+  function nearestDoor(r) {
+    const mid = o => o.x + o.w / 2;
+    return [...document.querySelectorAll("#train .door")].map(rel)
+      .reduce((a, b) => Math.abs(mid(b) - mid(r)) < Math.abs(mid(a) - mid(r)) ? b : a);
+  }
+  function setTally(n, done) {
+    const t = $("tally");
+    t.textContent = `🧑 ${n}`;
+    t.classList.add("show");
+    t.classList.toggle("done", !!done);
+    t.classList.remove("bump"); void t.offsetWidth; t.classList.add("bump");
+  }
+  // Swap the real passenger for an invisible copy so nobody else shifts seats.
+  function leaveGap(p) {
+    const gap = p.cloneNode(true);
+    gap.style.visibility = "hidden";
+    p.replaceWith(gap);
+  }
+  // Animate a walking copy of a passenger through points [x, y, scale, opacity, timeFraction] in scene px.
+  function walk(r, p, points, dur, cls) {
+    const w = document.createElement("div");
+    w.className = "walker" + (cls ? " " + cls : "");
+    Object.assign(w.style, { left: r.x + "px", top: r.y + "px", width: r.w + "px", height: r.h + "px", fontSize: r.fs }); // r is measured before the passenger leaves its seat
+    w.innerHTML = `<span>${p.dataset.face}</span>`;
+    $("scene").appendChild(w);
+    const anim = w.animate(points.map(([x, y, sc, op, t]) => ({
+      transform: `translate(${x - r.x}px, ${y - r.y}px) scale(${sc})`, opacity: op, offset: t,
+    })), { duration: dur, fill: "forwards" });
+    return anim.finished.then(() => w.remove());
+  }
+
+  // Get on: walk along the platform to the nearest door, step up and in, then pop into a seat.
+  function boardOne(p, gen, onIn) {
+    const r = rel(p), d = nearestDoor(r);
+    const doorX = d.x + d.w / 2 - r.w / 2, doorY = d.y + d.h - r.h - 4;
+    const walkMs = slow(Math.min(1200, 300 + Math.abs(doorX - r.x) * 4)), stepMs = slow(650), dur = walkMs + stepMs;
+    const t1 = walkMs / dur;
+    leaveGap(p);
+    return walk(r, p, [
+      [r.x, r.y, 1, 1, 0],
+      [doorX, r.y, 1, 1, t1],
+      [doorX, doorY, 0.95, 1, t1 + (1 - t1) * 0.65],
+      [doorX, doorY - 6, 0.4, 0, 1],
+    ], dur).then(() => {
+      if (gen !== S.gen) return;
+      p.classList.remove("board");
+      p.classList.add("pop");
+      $("carriage").appendChild(p);
+      onIn();
+    });
+  }
+
+  // Get off: go to the nearest door, step down onto the platform, then wave and walk away.
+  function alightOne(p, gen, onOut) {
+    const r = rel(p), d = nearestDoor(r), plat = rel($("platform")), W = $("scene").clientWidth;
+    const doorX = d.x + d.w / 2 - r.w / 2, doorY = d.y + d.h - r.h - 4;
+    const platY = plat.y + plat.h / 2 - r.h / 2;
+    const exitX = d.x + d.w / 2 < W / 2 ? -r.w - 20 : W + 20;
+    const toDoor = slow(500), down = slow(450), away = slow(Math.min(1300, 400 + Math.abs(exitX - doorX) * 3.5));
+    const dur = toDoor + down + away;
+    leaveGap(p);
+    setTimeout(() => gen === S.gen && onOut(), toDoor + down);
+    return walk(r, p, [
+      [r.x, r.y, 1, 1, 0],
+      [doorX, doorY, 1, 1, toDoor / dur],
+      [doorX, platY, 1, 1, (toDoor + down) / dur],
+      [exitX, platY, 1, 1, 1],
+    ], dur, "bye");
+  }
+
+  // One passenger at a time (slightly overlapping), counting on or back out loud.
+  async function movePassengers(q, gen) {
+    await sleep(slow(1000)); // let the cheer finish
+    if (gen !== S.gen) return;
+    let n = q.a;
+    setTally(n);
+    const group = q.op === "+"
+      ? [...$("platform").querySelectorAll(".pax")]
+      : [...$("carriage").querySelectorAll(".pax.leaving")];
+    const step = () => { n += q.op === "+" ? 1 : -1; setTally(n); sfx.tick(); say(String(n)); };
+    const jobs = [];
+    for (const p of group) {
+      if (gen !== S.gen) return;
+      jobs.push(q.op === "+" ? boardOne(p, gen, step) : alightOne(p, gen, step));
+      await sleep(slow(800));
+    }
+    await Promise.all(jobs);
   }
 
   function finish() {
