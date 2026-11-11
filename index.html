@@ -149,22 +149,24 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   /* Compact start screen: everything fits on one page above the dock, centred in the space left. */
-  #home.screen { gap: 10px; padding-top: 12px; min-height: 100vh; min-height: 100dvh; justify-content: center; }
+  #home.screen { gap: 8px; padding-top: 10px; min-height: 100vh; min-height: 100dvh; justify-content: center; }
   #home h2 { font-size: 18px; margin: 0; }
   #home .lines { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   #home .line-btn {
-    min-height: 0; height: 78px; padding: 8px 6px; border-radius: 16px; text-align: center;
+    min-height: 0; height: 70px; padding: 6px 6px; border-radius: 16px; text-align: center;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
   }
   #home .line-btn .code { font-size: 28px; line-height: 1; }
   #home .line-btn .name { font-size: 12px; line-height: 1.15; }
   #home .line-btn .badge { top: 3px; right: 6px; font-size: 16px; }
   #home .choices { flex-wrap: nowrap; gap: 8px; }
-  #home .pill { flex: 1 1 0; min-width: 0; padding: 12px 4px; font-size: 18px; border-radius: 16px; }
+  #home .pill { flex: 1 1 0; min-width: 0; padding: 9px 4px; font-size: 18px; border-radius: 16px; }
   #home .pill small { font-size: 12px; }
   #home .start-hint { font-size: 16px; }
   @media (max-height: 600px) {
-    #home .line-btn { height: 62px; }
+    #home.screen { gap: 5px; }
+    #home .line-btn { height: 50px; }
+    #home .pill small { display: none; }
     #home .line-btn .code { font-size: 22px; }
     #home .line-btn .name { font-size: 10px; }
     #home .pill { padding: 8px 2px; font-size: 15px; }
@@ -217,6 +219,52 @@
       transparent;
   }
   .start-hint { background: rgba(255,255,255,.85); border-radius: 999px; padding: 2px 14px; width: fit-content; margin-inline: auto; }
+
+  /* start station chip in the dock */
+  .dock-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+  .start-chip {
+    background: #fff; border-radius: 999px; padding: 6px 14px; font-size: 16px; font-weight: bold;
+    box-shadow: 0 3px 0 rgba(0,0,0,.15); border: 3px solid var(--line); max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  #home .start-hint { margin: 0; }
+
+  /* overlays: start picker, MRT map, interchange choice */
+  .overlay { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(15,25,35,.55); }
+  .overlay[hidden] { display: none; }
+  .ov-card { background: #fff; border-radius: 22px; width: 100%; max-width: 720px; max-height: calc(100dvh - 24px); display: flex; flex-direction: column; gap: 10px; padding: 12px; box-shadow: 0 8px 0 rgba(0,0,0,.2); }
+  .ov-head { display: flex; align-items: center; gap: 10px; font-size: 19px; }
+  .ov-head b { flex: 1; }
+  .map-scroll { overflow: auto; border-radius: 14px; background: #eef6fb; flex: none; max-height: 46dvh; -webkit-overflow-scrolling: touch; }
+  #mapView .map-scroll { max-height: calc(100dvh - 140px); flex: 1; }
+  .map-scroll svg { display: block; width: 960px; height: auto; }
+  .map-key { margin: 0; text-align: center; font-size: 13px; color: var(--muted); }
+  .mst.pickable { cursor: pointer; }
+  .here-ring { transform-box: fill-box; transform-origin: center; animation: hereRing 1.2s ease-out infinite; }
+  @keyframes hereRing { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
+  .st-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; overflow: auto; padding: 2px; }
+  .st-chip { background: #fff; border: 3px solid var(--line); border-radius: 14px; padding: 8px 6px; font-size: 15px; font-weight: bold; line-height: 1.15; }
+  .st-chip.sel { background: var(--line); color: #fff; }
+  .st-chip .i { display: block; font-size: 11px; font-weight: normal; opacity: .8; }
+  .dir-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dir-row[hidden] { display: none; }
+  .dir-btn, .x-opt {
+    border: 0; border-radius: 16px; padding: 12px 8px; font-size: 17px; font-weight: bold; color: #fff;
+    box-shadow: 0 5px 0 rgba(0,0,0,.22); text-shadow: 0 1px 1px rgba(0,0,0,.25); line-height: 1.2;
+  }
+  .dir-btn small, .x-opt small { display: block; font-size: 13px; font-weight: normal; }
+  .xchg-card { max-width: 440px; text-align: center; overflow: auto; }
+  .xchg-card h3 { margin: 4px 0 0; font-size: 23px; }
+  .xchg-sub { margin: 0; color: var(--muted); font-size: 17px; }
+  .x-opts { display: grid; gap: 10px; }
+  .x-opt.end { background: #5b6b7c; }
+
+  /* surprises during the ride */
+  .sitem { position: absolute; z-index: 3; font-size: 30px; line-height: 1; pointer-events: none; animation: bob 1.4s ease-in-out infinite alternate; transition: transform .9s ease-in, opacity .9s; }
+  .sitem.away { transform: translate(140px, -120px) !important; opacity: 0; }
+  @keyframes bob { to { transform: translateY(-8px); } }
+
+  /* long lines: small dots on the route strip */
+  .route .dot.small { width: 10px; height: 10px; margin-left: -5px; top: 17px; border-width: 2px; }
 
   /* ---------- Game ---------- */
   .topbar { display: flex; align-items: center; gap: 8px; }
@@ -383,7 +431,7 @@
   @media (prefers-reduced-motion: reduce) {
     body[data-screen="home"]::before { animation: none; }
     .pax, .door i { transition: none; }
-    .walker span, .pax.pop, .tally.bump { animation: none; }
+    .walker span, .pax.pop, .tally.bump, .sitem, .here-ring { animation: none; }
     .big-emoji, .confetti, .mini-train, .start-train, .start-train.leaving, .start-train.swapping, .signal.green .lamp-go, .signal.go .lamp-go, .signal.nudge, .st-car, .st-wheels i, .start-hint span { animation: none !important; }
   }
 </style>
@@ -402,8 +450,18 @@
     <button class="pill" data-mode="mix">🔀 Both<small>mixed</small></button>
   </div>
 
+  <h2>3. How far?</h2>
+  <div class="choices" id="tripList">
+    <button class="pill" data-trip="short">🐢 Short<small>5 stops</small></button>
+    <button class="pill sel" data-trip="normal">🚆 Normal<small>10 stops</small></button>
+    <button class="pill" data-trip="long">🚀 Long<small>to the end</small></button>
+  </div>
+
   <div class="start-dock">
-    <p class="start-hint" id="startHint" aria-live="polite">Wait for the green light…</p>
+    <div class="dock-row">
+      <button class="start-chip" id="startPick" aria-label="Choose the station to start from">📍 Jurong East</button>
+      <p class="start-hint" id="startHint" aria-live="polite">Wait for green…</p>
+    </div>
     <div class="start-track">
       <button class="start-train" id="goBtn" aria-label="Tap the train to start">
         <span class="st-car" aria-hidden="true"><i class="st-win"></i><i class="st-win"></i></span>
@@ -438,6 +496,7 @@
   <div class="signrow">
     <div class="sign"><span class="lbl" id="signLbl">Now at</span><span id="stationName">Station</span></div>
     <div class="stars" id="starCount">⭐ 0</div>
+    <button class="icon-btn" id="mapBtn" aria-label="Show the MRT map">🗺️</button>
   </div>
 
   <div class="scene" id="scene">
@@ -474,23 +533,54 @@
   <button class="pill" id="otherBtn">🗺️ Choose another line</button>
 </section>
 
+<!-- OVERLAYS -->
+<div class="overlay" id="picker" hidden>
+  <div class="ov-card" role="dialog" aria-labelledby="pickTitle">
+    <div class="ov-head"><b id="pickTitle">📍 Where do we start?</b><button class="icon-btn" id="pickClose" aria-label="Close">✕</button></div>
+    <div class="map-scroll" id="pickScroll"><svg id="pickMap" aria-label="MRT map"></svg></div>
+    <div class="dir-row" id="dirRow" hidden></div>
+    <div class="st-chips" id="stChips"></div>
+  </div>
+</div>
+<div class="overlay" id="mapView" hidden>
+  <div class="ov-card" role="dialog" aria-labelledby="mapTitle">
+    <div class="ov-head"><b id="mapTitle">🗺️ MRT map</b><button class="icon-btn" id="mapClose" aria-label="Close">✕</button></div>
+    <div class="map-scroll" id="mapScroll"><svg id="bigMap" aria-label="MRT map showing where the train is"></svg></div>
+    <p class="map-key">🚆 You are here · ⭐ stations on this ride · drag to look around</p>
+  </div>
+</div>
+<div class="overlay" id="xchg" hidden>
+  <div class="ov-card xchg-card" role="dialog" aria-labelledby="xTitle">
+    <h3 id="xTitle">🔀 Interchange!</h3>
+    <p class="xchg-sub">Which train shall we take?</p>
+    <div class="x-opts" id="xOpts"></div>
+  </div>
+</div>
+
 <script>
 (() => {
-  // Real station names (in order) for a short trip on each line.
+  // Every station open on each line (Nov 2026), in route order. The Circle Line runs from Dhoby Ghaut
+  // round the loop to Bayfront. Bedok South, Sungei Bedok and Xilin open on 26 Dec 2026: add them then.
   const LINES = [
     { id: "NS", name: "North South Line", color: "#D42E12",
-      stations: ["Woodlands", "Yishun", "Ang Mo Kio", "Bishan", "Toa Payoh", "Novena", "Newton", "Orchard", "City Hall", "Marina Bay"] },
+      stations: ["Jurong East", "Bukit Batok", "Bukit Gombak", "Choa Chu Kang", "Yew Tee", "Kranji", "Marsiling", "Woodlands", "Admiralty", "Sembawang", "Canberra", "Yishun", "Khatib", "Yio Chu Kang", "Ang Mo Kio", "Bishan", "Braddell", "Toa Payoh", "Novena", "Newton", "Orchard", "Somerset", "Dhoby Ghaut", "City Hall", "Raffles Place", "Marina Bay", "Marina South Pier"] },
     { id: "EW", name: "East West Line", color: "#009645",
-      stations: ["Pasir Ris", "Tampines", "Bedok", "Paya Lebar", "Bugis", "City Hall", "Raffles Place", "Outram Park", "Clementi", "Jurong East"] },
+      stations: ["Pasir Ris", "Tampines", "Simei", "Tanah Merah", "Bedok", "Kembangan", "Eunos", "Paya Lebar", "Aljunied", "Kallang", "Lavender", "Bugis", "City Hall", "Raffles Place", "Tanjong Pagar", "Outram Park", "Tiong Bahru", "Redhill", "Queenstown", "Commonwealth", "Buona Vista", "Dover", "Clementi", "Jurong East", "Chinese Garden", "Lakeside", "Boon Lay", "Pioneer", "Joo Koon", "Gul Circle", "Tuas Crescent", "Tuas West Road", "Tuas Link"] },
     { id: "NE", name: "North East Line", color: "#9900AA",
-      stations: ["HarbourFront", "Outram Park", "Chinatown", "Dhoby Ghaut", "Little India", "Farrer Park", "Serangoon", "Hougang", "Sengkang", "Punggol"] },
+      stations: ["HarbourFront", "Outram Park", "Chinatown", "Clarke Quay", "Dhoby Ghaut", "Little India", "Farrer Park", "Boon Keng", "Potong Pasir", "Woodleigh", "Serangoon", "Kovan", "Hougang", "Buangkok", "Sengkang", "Punggol", "Punggol Coast"] },
     { id: "CC", name: "Circle Line", color: "#E8930C",
-      stations: ["Dhoby Ghaut", "Promenade", "Stadium", "Paya Lebar", "Serangoon", "Bishan", "Botanic Gardens", "Buona Vista", "Kent Ridge", "HarbourFront"] },
+      stations: ["Dhoby Ghaut", "Bras Basah", "Esplanade", "Promenade", "Nicoll Highway", "Stadium", "Mountbatten", "Dakota", "Paya Lebar", "MacPherson", "Tai Seng", "Bartley", "Serangoon", "Lorong Chuan", "Bishan", "Marymount", "Caldecott", "Botanic Gardens", "Farrer Road", "Holland Village", "Buona Vista", "one-north", "Kent Ridge", "Haw Par Villa", "Pasir Panjang", "Labrador Park", "Telok Blangah", "HarbourFront", "Keppel", "Cantonment", "Prince Edward Road", "Marina Bay", "Bayfront"] },
     { id: "DT", name: "Downtown Line", color: "#005EC4",
-      stations: ["Bukit Panjang", "Beauty World", "Botanic Gardens", "Newton", "Little India", "Bugis", "Promenade", "Bayfront", "Chinatown", "Expo"] },
+      stations: ["Bukit Panjang", "Cashew", "Hillview", "Hume", "Beauty World", "King Albert Park", "Sixth Avenue", "Tan Kah Kee", "Botanic Gardens", "Stevens", "Newton", "Little India", "Rochor", "Bugis", "Promenade", "Bayfront", "Downtown", "Telok Ayer", "Chinatown", "Fort Canning", "Bencoolen", "Jalan Besar", "Bendemeer", "Geylang Bahru", "Mattar", "MacPherson", "Ubi", "Kaki Bukit", "Bedok North", "Bedok Reservoir", "Tampines West", "Tampines", "Tampines East", "Upper Changi", "Expo"] },
     { id: "TE", name: "Thomson-East Coast Line", color: "#9D5B25",
-      stations: ["Woodlands North", "Woodlands", "Springleaf", "Caldecott", "Stevens", "Orchard", "Great World", "Outram Park", "Maxwell", "Marina Bay"] },
+      stations: ["Woodlands North", "Woodlands", "Woodlands South", "Springleaf", "Lentor", "Mayflower", "Bright Hill", "Upper Thomson", "Caldecott", "Stevens", "Napier", "Orchard Boulevard", "Orchard", "Great World", "Havelock", "Outram Park", "Maxwell", "Shenton Way", "Marina Bay", "Gardens by the Bay", "Tanjong Rhu", "Katong Park", "Tanjong Katong", "Marine Parade", "Marine Terrace", "Siglap", "Bayshore"] },
   ];
+  // Schematic map positions (x west→east 0–184, y north→south 0–100). Interchanges share one position.
+  const POS = {"Jurong East": [46, 58], "Bukit Batok": [48, 50], "Bukit Gombak": [49, 44], "Choa Chu Kang": [50, 37], "Yew Tee": [52, 30], "Kranji": [58, 22], "Marsiling": [66, 16], "Woodlands": [74, 14], "Admiralty": [82, 13], "Sembawang": [89, 12], "Canberra": [96, 13], "Yishun": [102, 18], "Khatib": [104, 24], "Yio Chu Kang": [105, 30], "Ang Mo Kio": [105, 36], "Bishan": [105, 42], "Braddell": [105, 47], "Toa Payoh": [105, 52], "Novena": [103, 57], "Newton": [100, 61], "Orchard": [96, 65], "Somerset": [99, 68], "Dhoby Ghaut": [102, 71], "City Hall": [106, 74], "Raffles Place": [106, 79], "Marina Bay": [108, 84], "Marina South Pier": [109, 90], "Pasir Ris": [178, 36], "Tampines": [172, 44], "Simei": [168, 50], "Tanah Merah": [164, 56], "Bedok": [158, 60], "Kembangan": [152, 62], "Eunos": [146, 63], "Paya Lebar": [140, 64], "Aljunied": [134, 65], "Kallang": [128, 66], "Lavender": [122, 68], "Bugis": [114, 70], "Tanjong Pagar": [102, 82], "Outram Park": [97, 80], "Tiong Bahru": [92, 78], "Redhill": [87, 76], "Queenstown": [82, 74], "Commonwealth": [77, 72], "Buona Vista": [72, 70], "Dover": [66, 68], "Clementi": [60, 66], "Chinese Garden": [41, 59], "Lakeside": [36, 60], "Boon Lay": [31, 62], "Pioneer": [26, 64], "Joo Koon": [21, 66], "Gul Circle": [16, 68], "Tuas Crescent": [12, 71], "Tuas West Road": [8, 74], "Tuas Link": [4, 77], "HarbourFront": [88, 90], "Chinatown": [100, 77], "Clarke Quay": [101, 74], "Little India": [105, 65], "Farrer Park": [108, 61], "Boon Keng": [113, 58], "Potong Pasir": [117, 54], "Woodleigh": [120, 50], "Serangoon": [124, 46], "Kovan": [129, 42], "Hougang": [133, 38], "Buangkok": [137, 33], "Sengkang": [141, 28], "Punggol": [145, 23], "Punggol Coast": [149, 18], "Bras Basah": [108, 71], "Esplanade": [112, 75], "Promenade": [116, 77], "Nicoll Highway": [121, 73], "Stadium": [126, 70], "Mountbatten": [131, 69], "Dakota": [135, 68], "MacPherson": [140, 58], "Tai Seng": [139, 53], "Bartley": [131, 48], "Lorong Chuan": [115, 44], "Marymount": [99, 44], "Caldecott": [93, 47], "Botanic Gardens": [86, 54], "Farrer Road": [81, 59], "Holland Village": [76, 63], "one-north": [70, 75], "Kent Ridge": [71, 80], "Haw Par Villa": [74, 85], "Pasir Panjang": [77, 89], "Labrador Park": [80, 92], "Telok Blangah": [84, 93], "Keppel": [92, 91], "Cantonment": [96, 89], "Prince Edward Road": [101, 91], "Bayfront": [113, 81], "Bukit Panjang": [57, 42], "Cashew": [61, 44], "Hillview": [64, 46], "Hume": [67, 48], "Beauty World": [70, 50], "King Albert Park": [73, 52], "Sixth Avenue": [77, 53], "Tan Kah Kee": [81, 53], "Stevens": [92, 56], "Rochor": [109, 66], "Downtown": [111, 86], "Telok Ayer": [105, 85], "Fort Canning": [97, 75], "Bencoolen": [104, 68], "Jalan Besar": [112, 64], "Bendemeer": [116, 62], "Geylang Bahru": [120, 60], "Mattar": [131, 59], "Ubi": [145, 55], "Kaki Bukit": [150, 53], "Bedok North": [155, 52], "Bedok Reservoir": [160, 50], "Tampines West": [165, 46], "Tampines East": [176, 48], "Upper Changi": [178, 54], "Expo": [180, 60], "Woodlands North": [76, 8], "Woodlands South": [77, 20], "Springleaf": [84, 26], "Lentor": [88, 31], "Mayflower": [92, 35], "Bright Hill": [95, 39], "Upper Thomson": [94, 43], "Napier": [90, 61], "Orchard Boulevard": [92, 64], "Great World": [93, 70], "Havelock": [92, 75], "Maxwell": [101, 85], "Shenton Way": [104, 88], "Gardens by the Bay": [113, 89], "Tanjong Rhu": [120, 86], "Katong Park": [126, 84], "Tanjong Katong": [132, 83], "Marine Parade": [138, 82], "Marine Terrace": [144, 81], "Siglap": [150, 80], "Bayshore": [156, 78]};
+  // STOPS[name] = every line (and index) that stops there, so interchanges are easy to find.
+  const STOPS = {};
+  LINES.forEach(L => L.stations.forEach((n, i) => (STOPS[n] ??= []).push({ L, i })));
+  const TRIP_STOPS = { short: 5, normal: 10, long: Infinity };
   const PEOPLE = ["🧑","👩","👨","🧒","👧","👦","👵","👴","🧕","👱","🧔","👩‍🦱","👨‍🦳","🧑‍🦰"];
   const CHEERS = ["Great job!", "Well done!", "Super!", "You got it!", "Shiok!", "Awesome!", "Fantastic!"];
 
@@ -509,7 +599,11 @@
   let musicOn = store.get("mrtMusic", true);
 
   // ---- state ----
-  const S = { gen: 0, line: LINES[0], mode: "add", at: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
+  const S = {
+    gen: 0, line: LINES[0], mode: "add", trip: "normal", startIdx: 0, startDir: 1,
+    at: 0, dir: 1, from: 0, left: 10, asked: 0, stars: 0, surprises: 0, trail: new Set(), home: null,
+    q: null, tries: 0, busy: false, counted: 0, last: "", surpriseNow: false,
+  };
 
   // ---- audio ----
   let ac;
@@ -724,7 +818,7 @@
       b.innerHTML = `<span class="code">${L.id}</span><span class="name">${L.name}</span>${badges[L.id] ? `<span class="badge" title="Completed">🏅</span>` : ""}`;
       b.onclick = () => {
         if (L === S.line) return;
-        S.line = L; renderLines(); sfx.tick();
+        S.line = L; S.startIdx = 0; S.startDir = 1; updateStartChip(); renderLines(); sfx.tick();
         swapStartTrain(); // old train drives off, a train in this line's colour pulls in
       };
       $("lineList").appendChild(b);
@@ -737,6 +831,7 @@
     });
   }
   bindPills("modeList", "mode", "mode");
+  bindPills("tripList", "trip", "trip");
 
   function show(id) {
     document.body.dataset.screen = id;
@@ -765,28 +860,44 @@
   // ---- game ----
   function startGame() {
     const gen = ++S.gen; // bumping this cancels timers/rides from an earlier game
-    S.at = 0; S.stars = 0; S.last = "";
+    S.home = { line: S.line, startIdx: S.startIdx, startDir: S.startDir };
+    const st = S.line.stations;
+    S.at = S.from = S.startIdx;
+    S.dir = S.startDir;
+    if (!st[S.at + S.dir]) S.dir = -S.dir; // at the end of the line: go the other way
+    S.left = TRIP_STOPS[S.trip] ?? 10;
+    S.asked = 0; S.stars = 0; S.surprises = 0; S.last = "";
+    S.trail = new Set([st[S.at]]);
     document.documentElement.style.setProperty("--line", S.line.color);
     $("lineTitle").textContent = S.line.name;
     $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
     $("starCount").textContent = "⭐ 0";
-    renderRoute(0);
+    renderRoute(S.at);
     $("signLbl").textContent = "Start";
-    $("stationName").textContent = S.line.stations[0];
+    $("stationName").textContent = st[S.at];
     $("carriage").innerHTML = "";
-    $("platform").innerHTML = `<span class="note">All aboard at ${S.line.stations[0]}! 🚆</span>`;
+    $("platform").innerHTML = `<span class="note">Starting at ${st[S.at]} 🚆</span>`;
     $("train").classList.add("open");
     $("tally").classList.remove("show");
     show("game");
     setTimeout(() => gen === S.gen && depart(), 1200);
   }
 
+  // Put the player's own choices back (a ride may have changed lines at an interchange).
+  function restoreHome() {
+    if (!S.home) return;
+    S.line = S.home.line; S.startIdx = S.home.startIdx; S.startDir = S.home.startDir;
+    document.documentElement.style.setProperty("--line", S.line.color);
+    updateStartChip();
+  }
+
   // pos can be fractional while the train is between stations
   function renderRoute(pos) {
     const st = S.line.stations, n = st.length - 1;
     const pct = i => (i / n) * 100;
-    let html = `<div class="track"></div><div class="done" id="routeDone" style="width:${pct(pos)}%"></div>`;
-    st.forEach((_, i) => { html += `<div class="dot ${i <= pos ? "passed" : ""}" style="left:${pct(i)}%"></div>`; });
+    const lo = Math.min(S.from, pos), hi = Math.max(S.from, pos), small = n > 12 ? " small" : "";
+    let html = `<div class="track"></div><div class="done" id="routeDone" style="left:${pct(lo)}%;width:${pct(hi) - pct(lo)}%"></div>`;
+    st.forEach((_, i) => { html += `<div class="dot${small} ${i >= lo && i <= hi ? "passed" : ""}" style="left:${pct(i)}%"></div>`; });
     html += `<div class="marker" id="routeMarker" style="left:${pct(pos)}%">🚆</div>`;
     html += `<div class="ends"><span>${st[0]}</span><span style="text-align:right">${st[n]}</span></div>`;
     $("route").innerHTML = html;
@@ -815,7 +926,8 @@
     const gen = S.gen;
     S.busy = true;
     S.q = makeQuestion();
-    const next = S.line.stations[S.at + 1];
+    const next = S.line.stations[S.at + S.dir];
+    S.surpriseNow = S.asked >= 1 && Math.random() < 0.3; // a surprise on about 1 in 3 rides
     $("tally").classList.remove("show", "done");
     $("story").innerHTML = `Doors closing… Next station: <b>${next}</b>`;
     $("equation").innerHTML = ""; $("answers").innerHTML = "";
@@ -836,7 +948,7 @@
   function ride(onMid, onDone) {
     const scene = $("scene"), W = scene.clientWidth, D = 2 * W + 40;
     const T = reduceMotion ? 500 : 3400;
-    const from = S.at, n = S.line.stations.length - 1;
+    const from = S.at, n = S.line.stations.length - 1, dir = S.dir, start0 = S.from;
     const far = $("layerFar"), near = $("layerNear"), rail = $("rail"), plat = $("platform");
     const train = $("train"), wheels = [...$("wheels").children], tunnel = $("tunnel");
     const marker = $("routeMarker"), done = $("routeDone");
@@ -861,8 +973,9 @@
       train.style.transform = reduceMotion ? "" : `translateY(${Math.sin(off / 16) * 1.5 * speed(p)}px)`;
       tunnel.style.opacity = Math.max(0, 1 - Math.abs(p - 0.5) / 0.18) * 0.85;
       tunnel.style.backgroundPositionX = `${-off * 1.4}px`;
-      const pos = from + ease(p);
-      marker.style.left = done.style.width = `${(pos / n) * 100}%`;
+      const pos = from + dir * ease(p), lo = Math.min(start0, pos), hi = Math.max(start0, pos);
+      marker.style.left = `${(pos / n) * 100}%`;
+      done.style.left = `${(lo / n) * 100}%`; done.style.width = `${((hi - lo) / n) * 100}%`;
       sound.set(speed(p));
       if (p < 1) requestAnimationFrame(frame);
       else {
@@ -892,13 +1005,21 @@
   // Pull into the station: doors open, passengers get on or off, then ask the question.
   async function arrive() {
     const gen = S.gen;
-    S.at++;
+    S.at += S.dir;
+    S.asked++;
+    const q = S.q, station = S.line.stations[S.at];
+    S.trail.add(station);
     renderRoute(S.at);
     $("signLbl").textContent = "Now at";
     $("train").classList.add("open");
     sfx.chime();
-    const q = S.q, station = S.line.stations[S.at];
     S.tries = 0; S.counted = 0; S.busy = true;
+    if (S.surpriseNow) {
+      await sleep(slow(600));
+      if (gen !== S.gen) return;
+      await surpriseRound(gen);
+      if (gen !== S.gen) return;
+    }
     const ppl = q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`;
     const verb = q.b === 1 ? "gets" : "get";
     $("story").innerHTML = q.op === "+"
@@ -969,8 +1090,7 @@
     const gen = S.gen;
     setTimeout(() => {
       if (gen !== S.gen) return;
-      if (S.at >= S.line.stations.length - 1) finish();
-      else depart();
+      continueTrip();
     }, 3200);
   }
 
@@ -1071,13 +1191,209 @@
     await Promise.all(jobs);
   }
 
+  // After a station: finish the trip, ride on, or (at an interchange) ask which train to take.
+  function continueTrip() {
+    S.left--;
+    if (S.left <= 0) return finish();
+    const L = S.line, here = L.stations[S.at];
+    const canStay = !!L.stations[S.at + S.dir];
+    const opts = [];
+    STOPS[here].filter(o => o.L !== L).forEach(({ L: M, i }) => {
+      if (M.stations[i + 1]) opts.push({ L: M, i, dir: 1, to: M.stations.at(-1) });
+      if (M.stations[i - 1]) opts.push({ L: M, i, dir: -1, to: M.stations[0] });
+    });
+    if (!opts.length) return canStay ? depart() : finish();
+    showInterchange(here, canStay, opts);
+  }
+
+  function showInterchange(here, canStay, opts) {
+    const gen = S.gen, L = S.line, box = $("xOpts");
+    $("xTitle").textContent = `🔀 ${here} is an interchange!`;
+    box.innerHTML = "";
+    const add = (html, bg, cls, onPick) => {
+      const b = document.createElement("button");
+      b.className = "x-opt" + (cls ? " " + cls : ""); b.innerHTML = html;
+      if (bg) b.style.background = bg;
+      b.onclick = () => { if (gen !== S.gen) return; $("xchg").hidden = true; sfx.tick(); onPick(); };
+      box.appendChild(b);
+    };
+    if (canStay) add(`Stay on the ${L.name}<small>towards ${S.dir > 0 ? L.stations.at(-1) : L.stations[0]}</small>`, L.color, "", depart);
+    opts.forEach(o => add(`Change to the ${o.L.name}<small>towards ${o.to}</small>`, o.L.color, "", () => {
+      S.line = o.L; S.at = S.from = o.i; S.dir = o.dir;
+      document.documentElement.style.setProperty("--line", o.L.color);
+      $("lineTitle").textContent = o.L.name;
+      renderRoute(S.at);
+      say(`All change! Now on the ${o.L.name}.`);
+      depart();
+    }));
+    if (!canStay) add(`🏁 End the ride here`, "", "end", finish);
+    $("xchg").hidden = false;
+    say(`${here} is an interchange! Which train shall we take?`);
+  }
+
+  // A surprise on arrival: something to spot and count (1 to 5). No timer; just for fun.
+  const SURPRISES = [
+    { e: "🐦", name: "birds", where: "sky" }, { e: "🎈", name: "balloons", where: "sky" },
+    { e: "🦋", name: "butterflies", where: "sky" }, { e: "🐱", name: "cats", where: "platform" },
+  ];
+  function surpriseRound(gen) {
+    const sp = pick(SURPRISES), n = rand(1, 5), scene = $("scene"), items = [];
+    const H = scene.clientHeight;
+    for (let k = 0; k < n; k++) {
+      const d = document.createElement("div");
+      d.className = "sitem"; d.textContent = sp.e;
+      d.style.left = `${6 + k * (82 / n) + rand(0, 6)}%`;
+      d.style.top = sp.where === "sky" ? `${rand(2, 34)}px` : `${H - 52 + rand(-4, 4)}px`;
+      d.style.animationDelay = `${-rand(0, 14) / 10}s`;
+      scene.appendChild(d); items.push(d);
+    }
+    $("story").innerHTML = `👀 Surprise! Look at the ${sp.where}!<br>How many <b>${sp.name}</b> can you see?`;
+    $("equation").innerHTML = ""; $("feedback").textContent = ""; $("feedback").className = "feedback";
+    const opts = new Set([n]);
+    for (const dlt of shuffle([-1, 1, 2, -2])) { if (opts.size >= 3) break; if (n + dlt >= 1 && n + dlt <= 6) opts.add(n + dlt); }
+    const box = $("answers"); box.innerHTML = "";
+    say(`Surprise! How many ${sp.name} can you see?`);
+    return new Promise(resolve => {
+      shuffle([...opts]).forEach(v => {
+        const b = document.createElement("button");
+        b.className = "ans sans"; b.textContent = v;
+        b.onclick = () => {
+          if (gen !== S.gen) return resolve();
+          if (v !== n) {
+            b.classList.add("wrong"); b.disabled = true; sfx.wrong();
+            $("feedback").className = "feedback bad"; $("feedback").textContent = "Count again! 🙂";
+            say("Count again!");
+            return;
+          }
+          S.surprises++;
+          b.classList.add("right"); sfx.right();
+          $("feedback").className = "feedback good"; $("feedback").textContent = `Yes! ${n} ${sp.name}! 🎁`;
+          say(`Yes! ${n} ${sp.name}!`);
+          box.querySelectorAll("button").forEach(x => x.disabled = true);
+          setTimeout(() => items.forEach(d => d.classList.add("away")), 700);
+          setTimeout(() => {
+            items.forEach(d => d.remove()); box.innerHTML = "";
+            $("feedback").textContent = ""; $("feedback").className = "feedback";
+            resolve();
+          }, slow(1800));
+        };
+        box.appendChild(b);
+      });
+    });
+  }
+
+  // ---- the MRT network map (used by the start picker and the in-game map) ----
+  const LAND = "M2 72 C 8 52, 28 32, 48 24 C 60 8, 80 3, 100 7 C 122 10, 150 13, 170 25 C 184 34, 188 48, 184 62 C 178 72, 162 79, 142 86 C 122 93, 102 97, 84 97 C 60 95, 30 87, 10 83 C 3 81, 0 77, 2 72 Z";
+  const svgNS = "http://www.w3.org/2000/svg";
+  function drawMap(svg, o) {
+    svg.innerHTML = "";
+    svg.setAttribute("viewBox", "-4 -2 194 102");
+    const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(svgNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+    add("path", { d: LAND, fill: "#f4fbef", stroke: "#d3e7cb", "stroke-width": .5 });
+    LINES.forEach(L => add("polyline", {
+      points: L.stations.map(n => POS[n].join(",")).join(" "), fill: "none", stroke: L.color,
+      "stroke-width": L === o.line ? 2.4 : 1.6, "stroke-linecap": "round", "stroke-linejoin": "round", opacity: !o.dim || L === o.line ? 1 : .25,
+    }));
+    for (const [name, [x, y]] of Object.entries(POS)) {
+      const lines = STOPS[name], inter = lines.length > 1, onLine = lines.some(z => z.L === o.line);
+      const g = add("g", { class: "mst" + (o.pick && onLine ? " pickable" : "") });
+      if (o.pick && onLine) { add("circle", { cx: x, cy: y, r: 2.8, fill: "transparent" }, g); g.addEventListener("click", () => o.pick(name)); }
+      const faded = o.dim && !onLine;
+      if (o.trail?.has(name)) {
+        add("circle", { cx: x, cy: y, r: 2, fill: "#fff", stroke: "rgba(0,0,0,.2)", "stroke-width": .3 }, g);
+        add("circle", { cx: x, cy: y, r: 1.6, fill: (o.line && onLine ? o.line : lines[0].L).color }, g);
+        add("text", { x, y: y + .8, "font-size": 2.2, "text-anchor": "middle", fill: "#fff" }, g).textContent = "★";
+      } else {
+        add("circle", { cx: x, cy: y, r: inter ? 1.6 : 1.1, fill: "#fff", stroke: "#1d2b3a", "stroke-width": inter ? .55 : .35, opacity: faded ? .35 : 1 }, g);
+      }
+    }
+    const label = (name, big) => {
+      const [x, y] = POS[name], right = x < 160;
+      add("text", { x: x + (right ? 2.6 : -2.6), y: y + .8, "font-size": big ? 3.4 : 2.2, "font-weight": "bold", fill: "#1d2b3a",
+        "text-anchor": right ? "start" : "end", stroke: "#fff", "stroke-width": big ? .9 : .6, "paint-order": "stroke" }).textContent = name;
+    };
+    (o.labels || []).forEach(n => n !== o.here && label(n, false));
+    if (o.here) {
+      const [x, y] = POS[o.here];
+      add("circle", { cx: x, cy: y, r: 3, fill: "none", stroke: "#ff4b3e", "stroke-width": .8, class: "here-ring" });
+      add("circle", { cx: x, cy: y, r: 2, fill: "#ff4b3e", stroke: "#fff", "stroke-width": .6 });
+      add("text", { x, y: y - 3, "font-size": 5, "text-anchor": "middle" }).textContent = "🚆";
+      label(o.here, true);
+    }
+  }
+  // Scroll a map so a station sits in the middle of the view.
+  function centreOn(scroller, svg, name) {
+    requestAnimationFrame(() => {
+      const [x, y] = POS[name], w = svg.clientWidth, h = svg.clientHeight;
+      scroller.scrollLeft = (x + 4) / 194 * w - scroller.clientWidth / 2;
+      scroller.scrollTop = (y + 2) / 102 * h - scroller.clientHeight / 2;
+    });
+  }
+  const TERMINI = [...new Set(LINES.flatMap(L => [L.stations[0], L.stations.at(-1)]))];
+  // A few well-known stations spread around the map get labels too (the city centre is too crowded for more).
+  const LANDMARKS = ["Woodlands", "Bishan", "Serangoon", "Paya Lebar", "Tampines", "Buona Vista", "Caldecott", "Botanic Gardens", "City Hall"];
+
+  // In-game map: the whole network, the train where it is now, and stars on this ride's stations.
+  function openMap() {
+    const here = S.line.stations[S.at];
+    $("mapTitle").textContent = `🗺️ ${$("signLbl").textContent === "Next stop" ? "Heading to" : "Now at"} ${$("stationName").textContent}`;
+    drawMap($("bigMap"), { line: S.line, here, trail: S.trail, labels: [...TERMINI, ...LANDMARKS] });
+    $("mapView").hidden = false;
+    centreOn($("mapScroll"), $("bigMap"), here);
+  }
+
+  // Start picker: tap a station (on the list or the map); mid-line stations also pick a direction.
+  function updateStartChip() { $("startPick").textContent = `📍 ${S.line.stations[S.startIdx]}`; }
+  function openPicker() {
+    const L = S.line, st = L.stations;
+    $("pickTitle").textContent = `📍 Where do we start on the ${L.name}?`;
+    const draw = () => drawMap($("pickMap"), { line: L, dim: true, here: st[S.startIdx], labels: [st[0], st.at(-1)], pick: name => choose(st.indexOf(name)) });
+    const chips = $("stChips");
+    chips.innerHTML = "";
+    st.forEach((name, i) => {
+      const b = document.createElement("button");
+      b.className = "st-chip" + (i === S.startIdx ? " sel" : "");
+      const other = STOPS[name].filter(z => z.L !== L).map(z => z.L.id).join(" ");
+      b.innerHTML = `${name}${other ? `<span class="i">🔀 ${other}</span>` : ""}`;
+      b.onclick = () => choose(i);
+      chips.appendChild(b);
+    });
+    function choose(i) {
+      S.startIdx = i; sfx.tick(); say(st[i]);
+      chips.querySelectorAll(".st-chip").forEach((c, k) => c.classList.toggle("sel", k === i));
+      draw(); centreOn($("pickScroll"), $("pickMap"), st[i]);
+      updateStartChip();
+      const row = $("dirRow");
+      if (i === 0 || i === st.length - 1) { S.startDir = i === 0 ? 1 : -1; row.hidden = true; setTimeout(closePicker, 450); return; }
+      row.innerHTML = "";
+      [[1, st.at(-1)], [-1, st[0]]].forEach(([d, to]) => {
+        const b = document.createElement("button");
+        b.className = "dir-btn"; b.style.background = L.color;
+        b.innerHTML = `<small>Go towards</small>${d > 0 ? "➡️" : "⬅️"} ${to}`;
+        b.onclick = () => { S.startDir = d; sfx.tick(); closePicker(); };
+        row.appendChild(b);
+      });
+      row.hidden = false;
+      say(`${st[i]}. Which way shall we go?`);
+    }
+    $("dirRow").hidden = true;
+    draw();
+    $("picker").hidden = false;
+    centreOn($("pickScroll"), $("pickMap"), st[S.startIdx]);
+    chips.querySelector(".sel")?.scrollIntoView({ block: "nearest" });
+  }
+  function closePicker() { $("picker").hidden = true; }
+
   function finish() {
-    const total = S.line.stations.length - 1;
-    const last = S.line.stations[total];
-    badges[S.line.id] = Math.max(badges[S.line.id] || 0, S.stars);
-    store.set("mrtBadges", badges);
+    const total = S.asked;
+    const last = S.line.stations[S.at];
+    if (!S.line.stations[S.at + S.dir]) { // reached the end of a line: earn its badge
+      badges[S.line.id] = Math.max(badges[S.line.id] || 0, S.stars);
+      store.set("mrtBadges", badges);
+    }
     $("endTitle").textContent = `You reached ${last}!`;
-    $("endText").textContent = `You helped the passengers on the ${S.line.name}. You got ${S.stars} out of ${total} stars on the first try!`;
+    const found = S.surprises ? ` You found ${S.surprises} surprise${S.surprises > 1 ? "s" : ""}! 🎁` : "";
+    $("endText").textContent = `You rode ${total} stop${total > 1 ? "s" : ""} and got ${S.stars} out of ${total} stars on the first try!${found}`;
     $("endStars").textContent = "⭐".repeat(S.stars) + "☆".repeat(total - S.stars);
     show("end");
     sfx.chime(); setTimeout(sfx.right, 900);
@@ -1106,7 +1422,7 @@
     signal.classList.remove("red", "amber", "green", "go");
     signal.classList.add(state);
     startHint.classList.toggle("wait", !ready);
-    startHint.innerHTML = ready ? "Green light! Tap <b>GO</b> 👉" : "Wait for the green light…";
+    startHint.innerHTML = ready ? "Tap <b>GO</b> 👉" : "Wait for green…";
     if (ready) sfx.ready();
   }
   function pullInStartTrain() {
@@ -1171,10 +1487,17 @@
   $("goSignal").onclick = go;
   paintLine();
   pullInStartTrain();
-  $("againBtn").onclick = startGame;
-  $("otherBtn").onclick = () => { renderLines(); show("home"); pullInStartTrain(); };
-  $("homeBtn").onclick = () => { S.gen++; try { speechSynthesis.cancel(); } catch {} renderLines(); show("home"); pullInStartTrain(); };
+  $("againBtn").onclick = () => { restoreHome(); startGame(); };
+  $("otherBtn").onclick = () => { restoreHome(); renderLines(); show("home"); pullInStartTrain(); };
+  $("homeBtn").onclick = () => { S.gen++; try { speechSynthesis.cancel(); } catch {} restoreHome(); renderLines(); show("home"); pullInStartTrain(); };
   $("sayBtn").onclick = speakQ;
+  $("startPick").onclick = openPicker;
+  $("pickClose").onclick = closePicker;
+  $("mapBtn").onclick = openMap;
+  $("mapClose").onclick = () => { $("mapView").hidden = true; };
+  // tapping the dark backdrop closes the picker or the map (not the interchange question)
+  ["picker", "mapView"].forEach(id => $(id).addEventListener("click", e => { if (e.target.id === id) $(id).hidden = true; }));
+  updateStartChip();
   $("musicBtn").onclick = toggleMusic;
   // Browsers only allow sound after the first tap, so start the music then.
   // Phones only allow sound after a real tap, so unlock everything on the first few taps.

@@ -9,11 +9,13 @@ A Singapore MRT math game for kids around age 6: single-digit addition and subtr
 <img src="media/screenshot.png" alt="A train at Bishan station: 6 + 2 = 8, answered correctly" width="300">
 
 ## How it plays
-1. Pick an MRT line: NS, EW, NE, CC, DT or TE (real station names, in order).
+1. Pick an MRT line: NS, EW, NE, CC, DT or TE, with every station on the line, in order.
 2. Pick **➕ Get on** (adding), **➖ Get off** (taking away) or **🔀 Both**.
-3. The doors close and the train rides to the next station: the city and trees roll past, the wheels spin, and it goes through a tunnel. At each station, passengers get on or off. Answer the sum to ride on.
-4. At the bottom of the start screen, a train pulls in beside a railway signal. The light goes red, then amber, then green. On green, tap **GO** (or the train): it toots and drives off, and the ride begins. Picking a different line sends a train in that line's colour pulling in, and the signal starts again from red.
-5. Reach the last station to win. Getting it right on the first try earns ⭐. Finished lines get a 🏅.
+3. Pick how far: **🐢 Short** (5 stops), **🚆 Normal** (10 stops) or **🚀 Long** (to the end of the line).
+4. Tap **📍** by the train to choose the starting station and, from the middle of a line, which way to go.
+5. At the bottom of the start screen, a train pulls in beside a railway signal. The light goes red, then amber, then green. On green, tap **GO** (or the train): it toots and drives off. Picking a different line sends a train in that line's colour pulling in, and the signal starts again from red.
+6. The doors close and the train rides to the next station: the city and trees roll past, the wheels spin, and it goes through a tunnel. At each station, passengers get on or off. Answer the sum to ride on.
+7. Reach the last stop to win. Getting it right on the first try earns ⭐. Riding to the end of a line earns its 🏅.
 
 Made for young kids:
 - Big buttons with only 3 answers to choose from
@@ -22,6 +24,9 @@ Made for young kids:
 - 🔊 reads the question aloud, since many 6-year-olds are still learning to read
 - Wrong answers are gentle: "try again", then a count-on or count-back hint
 - No timers and no losing
+- At interchanges (like Bishan or Dhoby Ghaut), choose to stay on or change trains, and keep riding across the network
+- Tap 🗺️ during a ride to see the whole MRT map and where the train is
+- Surprises along the way: count the birds, balloons, butterflies or cats for a 🎁
 - Gentle background music (🎵 to turn it on or off). It's an original tune written in code, not the real MRT audio. It gets quieter while the voice reads the question.
 
 ## More game ideas
