@@ -1,22 +1,28 @@
 # 🚆 MRT Math Express
 
-A Singapore MRT math game for kids around age 6: single-digit addition and subtraction.
+A Singapore MRT math game for kids around age 6: single-digit addition and subtraction, with every number 10 or less.
 
 **Play:** open `index.html` in any browser (phone, tablet or computer). No install or internet needed.
+
+**Watch:** [30-second gameplay video](media/mrt-math-express-gameplay.mp4)
+
+<img src="media/screenshot.png" alt="A train at Bishan station: 6 + 2 = 8, answered correctly" width="300">
 
 ## How it plays
 1. Pick an MRT line: NS, EW, NE, CC, DT or TE (real station names, in order).
 2. Pick **➕ Get on** (adding), **➖ Get off** (taking away) or **🔀 Both**.
-3. Pick **🐣 Easy** (up to 10) or **🦁 Challenge** (up to 18).
-4. At each station, passengers get on or off. Answer the sum to send the train to the next stop.
+3. The doors close and the train rides to the next station: the city and trees roll past, the wheels spin, and it goes through a tunnel. At each station, passengers get on or off. Answer the sum to ride on.
+4. Tap the train at the bottom of the start screen. It toots and drives off, and the ride begins.
 5. Reach the last station to win. Getting it right on the first try earns ⭐. Finished lines get a 🏅.
 
 Made for young kids:
 - Big buttons with only 3 answers to choose from
 - Tap the passengers to count them (a number appears on each one)
+- When the train stops, passengers walk to the doors and get on (or step off and walk away waving) one at a time, while a counter says how many: ➕ 1, 2, 3. Then the question appears, and kids can count everyone in the train.
 - 🔊 reads the question aloud, since many 6-year-olds are still learning to read
 - Wrong answers are gentle: "try again", then a count-on or count-back hint
 - No timers and no losing
+- Gentle background music (🎵 to turn it on or off). It's an original tune written in code, not the real MRT audio. It gets quieter while the voice reads the question.
 
 ## More game ideas
 - **Fare gate / EZ-Link top-up:** pay a fare with 1¢, 5¢ and 10¢ coins (number bonds to 10).
