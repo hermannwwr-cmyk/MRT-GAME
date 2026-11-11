@@ -148,6 +148,46 @@
   .start-train:not(.waiting) .st-wheels i { animation-play-state: running; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
+  /* Compact start screen: everything fits on one page above the dock, centred in the space left. */
+  #home.screen { gap: 10px; padding-top: 12px; min-height: 100vh; min-height: 100dvh; justify-content: center; }
+  #home h2 { font-size: 18px; margin: 0; }
+  #home .lines { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  #home .line-btn {
+    min-height: 0; height: 78px; padding: 8px 6px; border-radius: 16px; text-align: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  }
+  #home .line-btn .code { font-size: 28px; line-height: 1; }
+  #home .line-btn .name { font-size: 12px; line-height: 1.15; }
+  #home .line-btn .badge { top: 3px; right: 6px; font-size: 16px; }
+  #home .choices { flex-wrap: nowrap; gap: 8px; }
+  #home .pill { flex: 1 1 0; min-width: 0; padding: 12px 4px; font-size: 18px; border-radius: 16px; }
+  #home .pill small { font-size: 12px; }
+  #home .start-hint { font-size: 16px; }
+  @media (max-height: 600px) {
+    #home .line-btn { height: 62px; }
+    #home .line-btn .code { font-size: 22px; }
+    #home .line-btn .name { font-size: 10px; }
+    #home .pill { padding: 8px 2px; font-size: 15px; }
+    #home h2 { font-size: 16px; }
+  }
+
+  /* Phone held sideways: too short for a bottom dock, so the train and signal move to the right side. */
+  @media (orientation: landscape) and (max-height: 500px) {
+    .start-dock {
+      left: auto; top: 0; width: min(42vw, 340px); display: flex; flex-direction: column; justify-content: center; gap: 6px;
+      padding: 8px 16px; box-shadow: -6px 0 16px rgba(0,0,0,.12);
+    }
+    .start-dock > * { width: 100%; }
+    .start-train .st-car:first-child { display: none; }
+    .start-train .st-wheels i:nth-child(5) { display: none; }
+    #home .line-btn { height: 58px; }
+    #home .line-btn .code { font-size: 22px; }
+    #home .line-btn .name { font-size: 10px; }
+    #home .pill { padding: 6px 2px; font-size: 15px; }
+    #home h2 { font-size: 15px; }
+    #home.screen { gap: 6px; padding-top: 8px; }
+  }
+
   /* ---------- Game ---------- */
   .topbar { display: flex; align-items: center; gap: 8px; }
   .icon-btn { background: var(--card); border-radius: 14px; width: 48px; height: 48px; font-size: 24px; box-shadow: var(--shadow); flex: none; }
@@ -1062,7 +1102,15 @@
   startTrain.onclick = go;
   // keep room under the choices for the dock, whatever its height on this screen
   const dock = document.querySelector(".start-dock");
-  const fitDock = () => { if (dock.offsetHeight) $("home").style.paddingBottom = dock.offsetHeight + 16 + "px"; };
+  const sideDock = matchMedia("(orientation: landscape) and (max-height: 500px)");
+  const fitDock = () => {
+    if (!dock.offsetHeight) return;
+    const home = $("home").style;
+    // bottom dock: leave room below the choices; side dock (phone held sideways): leave room on the right
+    home.paddingBottom = sideDock.matches ? "16px" : dock.offsetHeight + 16 + "px";
+    home.paddingRight = sideDock.matches ? dock.offsetWidth + 16 + "px" : "";
+  };
+  sideDock.addEventListener?.("change", fitDock);
   if ("ResizeObserver" in window) new ResizeObserver(fitDock).observe(dock); else addEventListener("resize", fitDock);
   fitDock();
   $("goSignal").onclick = go;
