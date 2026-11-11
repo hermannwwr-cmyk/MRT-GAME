@@ -342,7 +342,7 @@
   // Background music: an original, gentle "train ride" tune made from code (not a recording).
   // 100 beats per minute, chords C – Am – F – G, looping every 8 bars.
   const music = (() => {
-    const BEAT = 0.6;
+    const BEAT = 0.6, MUSIC_VOL = 0.14;
     const MELODY = [64,67,64,60, 69,67,64,0, 65,69,72,69, 67,0,62,64,
                     64,67,72,67, 69,72,69,64, 65,64,62,65, 64,62,60,0];
     const BASS = [48, 45, 41, 43, 48, 45, 41, 43];
@@ -360,7 +360,7 @@
       while (next < ac.currentTime + 0.5) {
         const m = MELODY[step], bar = Math.floor(step / 4), beat = step % 4;
         if (m) note(m, next, BEAT * 0.9, "triangle", 0.5);
-        if (beat === 0 || beat === 2) note(BASS[bar] - (beat === 2 ? 0 : 12) + 12, next, BEAT * 1.6, "sine", 0.6);
+        if (beat === 0 || beat === 2) note(BASS[bar] + (beat === 2 ? 24 : 12), next, BEAT * 1.6, "triangle", 0.45); // high enough for phone speakers
         if (beat === 1 || beat === 3) note(BASS[bar] + 28, next, 0.12, "sine", 0.15); // soft "tick" like train wheels
         next += BEAT; step = (step + 1) % MELODY.length;
       }
@@ -373,7 +373,7 @@
           if (!bus) { bus = ac.createGain(); bus.connect(ac.destination); }
           bus.gain.cancelScheduledValues(ac.currentTime);
           bus.gain.setValueAtTime(0.0001, ac.currentTime);
-          bus.gain.exponentialRampToValueAtTime(0.06, ac.currentTime + 1);
+          bus.gain.exponentialRampToValueAtTime(MUSIC_VOL, ac.currentTime + 1);
           next = ac.currentTime + 0.1;
           timer = setInterval(schedule, 120); schedule();
         } catch {}
@@ -386,7 +386,7 @@
       // quieter while the voice is talking so the question is easy to hear
       duck(on) {
         if (!timer || !bus) return;
-        try { bus.gain.cancelScheduledValues(ac.currentTime); bus.gain.setTargetAtTime(on ? 0.02 : 0.06, ac.currentTime, 0.1); } catch {}
+        try { bus.gain.cancelScheduledValues(ac.currentTime); bus.gain.setTargetAtTime(on ? MUSIC_VOL / 3 : MUSIC_VOL, ac.currentTime, 0.1); } catch {}
       },
     };
   })();
@@ -407,8 +407,8 @@
       const end = () => { clearTimeout(guard); music.duck(false); resolve(); };
       const guard = setTimeout(end, pause + 2500); // some browsers never fire onend
       try {
-        speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(text);
+        if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+        const u = window.__mrtUtterance = new SpeechSynthesisUtterance(text);
         u.rate = 0.9; u.pitch = 1.1;
         const v = speechSynthesis.getVoices().find(v => /en[-_](SG|GB|AU)/i.test(v.lang)) || speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
         if (v) u.voice = v;
@@ -419,6 +419,44 @@
     });
   }
   const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  // ---- unlocking sound on phones and tablets ----
+  let silentEl = null, speechUnlocked = false;
+  // A tiny silent WAV played through an <audio> element puts iPhones/iPads into "playback" mode,
+  // so the ring/silent switch doesn't mute the game's Web Audio sounds.
+  function silentWavUrl() {
+    const n = 800, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const w = (o, str) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, "RIFF"); v.setUint32(4, 36 + n, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 8000, true); v.setUint32(28, 8000, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, "data"); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
+  }
+  function unlockAudio() {
+    try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
+    try {
+      const c = audio();
+      const src = c.createBufferSource();
+      src.buffer = c.createBuffer(1, 1, 22050);
+      src.connect(c.destination); src.start(0);
+    } catch {}
+    try {
+      if (!silentEl) { silentEl = new Audio(silentWavUrl()); silentEl.loop = true; silentEl.setAttribute("playsinline", ""); }
+      silentEl.play().catch(() => {});
+    } catch {}
+    // iPhones/iPads only let a page talk after it has spoken once during a tap.
+    try {
+      if (!speechUnlocked && "speechSynthesis" in window) {
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        speechSynthesis.speak(u);
+        speechUnlocked = true;
+      }
+    } catch {}
+    music.start();
+    if (ac && ac.state === "running") UNLOCK_EVENTS.forEach(ev => document.removeEventListener(ev, unlockAudio, true));
+  }
 
   // ---- scenery art: simple SVG tiles that repeat sideways ----
   const svgUrl = svg => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
@@ -819,7 +857,9 @@
   $("musicBtn").onclick = toggleMusic;
   $("homeMusicBtn").onclick = e => { e.stopPropagation(); toggleMusic(); };
   // Browsers only allow sound after the first tap, so start the music then.
-  document.addEventListener("pointerdown", () => music.start(), { once: true });
+  // Phones only allow sound after a real tap, so unlock everything on the first few taps.
+  const UNLOCK_EVENTS = ["pointerup", "touchend", "click", "keydown"];
+  UNLOCK_EVENTS.forEach(ev => document.addEventListener(ev, unlockAudio, true));
   syncMusicButtons();
   $("soundBtn").onclick = () => {
     soundOn = !soundOn; store.set("mrtSound", soundOn);

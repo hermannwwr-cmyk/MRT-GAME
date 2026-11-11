@@ -25,7 +25,8 @@ The project has no build, dependencies, package manager, linter or test suite. T
 - **Cancelling:** `S.gen` is a game counter. Timers and rides check it and stop if it has changed, so 🏠 or a restart cancels anything still running. Honour `prefers-reduced-motion` through `reduceMotion`, which makes the ride short and removes the bob.
 - **Audio:** everything is made with the Web Audio API; there are no audio files.
   - `tone()` plays sound effects (in `sfx`).
-  - `music` is an IIFE with a look-ahead note scheduler that plays an original looping tune. It starts on the first `pointerdown`, because of browser autoplay rules, and `music.duck()` lowers it while `say()` speaks.
+  - `music` is an IIFE with a look-ahead note scheduler that plays an original looping tune. `music.duck()` lowers it while `say()` speaks. Keep its notes above about 130 Hz so phone speakers can play them.
+  - `unlockAudio()` runs on real taps (`pointerup`, `touchend`, `click`, `keydown`; not `pointerdown`, which doesn't count as a tap on touch screens). It resumes the AudioContext, plays a silent `<audio>` loop and sets `navigator.audioSession.type = "playback"` so the iPhone silent switch doesn't mute the game, speaks a silent utterance (iOS only allows speech after one during a tap), and starts the music.
   - `say()` uses `speechSynthesis` to read questions aloud.
   - Don't copy the real MRT chimes or jingles, which are copyrighted. Keep the sounds original.
 - **Persistence:** the `store` wrapper writes `localStorage` keys `mrtBadges`, `mrtSound` and `mrtMusic`, each in try/catch. The game must still work when storage is unavailable.
