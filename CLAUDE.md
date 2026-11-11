@@ -17,6 +17,7 @@ The project has no build, dependencies, package manager, linter or test suite. T
 ## Architecture (inside `index.html`)
 
 - **Three screens:** `<section class="screen">` elements with the ids `home`, `game` and `end`. `show(id)` switches between them.
+- **Start button:** `#goBtn` is a train drawn in CSS. `pullInStartTrain()` replays its pull-in animation whenever the home screen shows. It bobs while it has the `.waiting` class. A tap adds `.leaving` (drive-off animation plus `sfx.toot()`), and `startGame()` runs about 1 s later. In tests, wait for `#game.active` after clicking it.
 - **Data:** `LINES` holds 6 lines (`id`, `name`, official line colour, and 10 real station names in route order). Each trip is `stations.length - 1` questions. The current line colour is applied through the CSS variable `--line` on `:root`.
 - **State:** one object `S` holds the line, mode (`add`, `sub` or `mix`), current stop, stars and current question. `makeQuestion()` sets the number ranges (the 10-or-less limit lives here) and makes 3 answer choices, adding distractors that are near the answer and within 0–10.
 - **Game loop:** `startGame()` (train at station 0) → `depart()` (makes the next question, closes the doors) → `ride()` → `arrive()` (`S.at++`, opens the doors, reads the story, runs `movePassengers()`, then shows the answer buttons and asks) → `answer()` → `depart()` again, or `finish()` at the last station. That gives 9 questions, at stations 1–9.
