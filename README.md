@@ -11,11 +11,10 @@ A Singapore MRT math game for kids around age 6: single-digit addition and subtr
 ## How it plays
 1. Pick an MRT line: NS, EW, NE, CC, DT or TE, with every station on the line, in order.
 2. Pick **➕ Get on** (adding), **➖ Get off** (taking away) or **🔀 Both**.
-3. Pick how far: **🐢 Short** (5 stops), **🚆 Normal** (10 stops) or **🚀 Long** (to the end of the line).
-4. Tap **📍** by the train to choose the starting station and, from the middle of a line, which way to go.
-5. At the bottom of the start screen, a train pulls in beside a railway signal. The light goes red, then amber, then green. On green, tap **GO** (or the train): it toots and drives off. Picking a different line sends a train in that line's colour pulling in, and the signal starts again from red.
-6. The doors close and the train rides to the next station: the city and trees roll past, the wheels spin, and it goes through a tunnel. At each station, passengers get on or off. Answer the sum to ride on.
-7. Reach the last stop to win. Getting it right on the first try earns ⭐. Riding to the end of a line earns its 🏅.
+3. Tap **📍** by the train to choose the starting station and, from the middle of a line, which way to go.
+4. At the bottom of the start screen, a train pulls in beside a railway signal. The light goes red, then amber, then green. On green, tap **GO** (or the train): it toots and drives off. Picking a different line sends a train in that line's colour pulling in, and the signal starts again from red.
+5. The doors close and the train rides to the next station: the city and trees roll past, the wheels spin, and it goes through a tunnel. At each station, passengers get on or off. Answer the sum to ride on.
+6. Ride to the end of the line to win. Getting it right on the first try earns ⭐. Riding to the end of a line earns its 🏅.
 
 Made for young kids:
 - Big buttons with only 3 answers to choose from
