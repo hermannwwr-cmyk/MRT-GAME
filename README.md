@@ -12,7 +12,7 @@ A Singapore MRT math game for kids around age 6: single-digit addition and subtr
 1. Pick an MRT line: NS, EW, NE, CC, DT or TE (real station names, in order).
 2. Pick **➕ Get on** (adding), **➖ Get off** (taking away) or **🔀 Both**.
 3. The doors close and the train rides to the next station: the city and trees roll past, the wheels spin, and it goes through a tunnel. At each station, passengers get on or off. Answer the sum to ride on.
-4. Tap the train docked at the bottom of the start screen. It toots and drives off, and the ride begins. Picking a different line sends a train in that line's colour pulling in.
+4. At the bottom of the start screen, a train pulls in beside a railway signal. The light goes red, then amber, then green. On green, tap **GO** (or the train): it toots and drives off, and the ride begins. Picking a different line sends a train in that line's colour pulling in, and the signal starts again from red.
 5. Reach the last station to win. Getting it right on the first try earns ⭐. Finished lines get a 🏅.
 
 Made for young kids:
