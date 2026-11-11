@@ -72,17 +72,21 @@
   @keyframes pullIn { from { transform: translateX(-120vw); } to { transform: none; } }
   @keyframes driveOff { to { transform: translateX(120vw); } }
   .st-car {
-    flex: 1; height: 86px; display: flex; align-items: center; gap: 6px; padding: 0 10px 14px;
-    background: var(--line); border-radius: 14px; color: #fff;
-    box-shadow: inset 0 -14px 0 rgba(0,0,0,.2), 0 4px 0 rgba(0,0,0,.15);
+    flex: 1; height: 88px; display: flex; align-items: flex-start; gap: 6px; padding: 14px 10px 0;
+    background:
+      linear-gradient(to bottom, transparent 66%, var(--line) 66% 77%, transparent 77% 81%, var(--line) 81% 86%, transparent 86%),
+      linear-gradient(to bottom, transparent 9px, #1d2834 9px 58px, transparent 58px),
+      linear-gradient(#fdfdfe, #d9e0e7);
+    border-radius: 10px; box-shadow: inset 0 -5px 0 #8f9ba7, 0 4px 0 rgba(0,0,0,.15);
   }
   .start-train.waiting .st-car { animation: idle 1s ease-in-out infinite alternate; }
   .start-train.waiting .st-car:last-of-type { animation-delay: .15s; }
   @keyframes idle { to { transform: translateY(-3px); } }
-  .st-win { flex: 1; height: 32px; background: #cfe9ff; border-radius: 6px; }
-  .st-lead { flex: 2; border-radius: 14px 46px 14px 14px; justify-content: space-between; padding-right: 12px; }
-  .st-text { font-size: clamp(22px, 6.5vw, 32px); font-weight: bold; white-space: nowrap; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
-  .st-cab { flex: none; width: 26px; height: 36px; background: #2a3b4d; border-radius: 6px 18px 6px 6px; }
+  .st-win { flex: 1; height: 34px; background: linear-gradient(170deg, #9fc2dc, #5f87a6); border-radius: 4px; }
+  .st-lead { flex: 2; border-radius: 10px 52px 10px 10px; justify-content: space-between; padding-right: 8px; }
+  /* amber lettering like a train's destination sign */
+  .st-text { color: #ffb21e; font-size: clamp(21px, 6.2vw, 30px); line-height: 34px; font-weight: bold; letter-spacing: .5px; white-space: nowrap; text-shadow: 0 0 6px rgba(255,170,0,.6); }
+  .st-cab { flex: none; width: 34px; height: 46px; margin-top: -5px; background: linear-gradient(155deg, #4c6378 0 18%, #101a24 45%); border-radius: 6px 30px 4px 6px; }
   .st-wheels { position: absolute; left: 7%; right: 7%; bottom: 2px; display: flex; justify-content: space-between; }
   .st-wheels i {
     width: 26px; height: 26px; border-radius: 50%; border: 5px solid #777;
@@ -120,31 +124,50 @@
   .layer { position: absolute; left: 0; right: 0; background-repeat: repeat-x; background-position: 0 100%; pointer-events: none; }
   .layer.far { top: 0; height: 110px; }
   .layer.near { top: 34px; height: 44px; }
+  /* Singapore-style MRT car (generic, no operator branding): white/silver body, dark window band,
+     two stripes in the line colour, full-height double doors, sloped front with a big windscreen. */
   .train {
+    --band: #1d2834;
+    --livery:
+      linear-gradient(to bottom, transparent calc(100% - 34px), var(--line) calc(100% - 34px) calc(100% - 24px),
+        transparent calc(100% - 24px) calc(100% - 20px), var(--line) calc(100% - 20px) calc(100% - 16px), transparent calc(100% - 16px)),
+      linear-gradient(to bottom, transparent 9px, var(--band) 9px calc(100% - 40px), transparent calc(100% - 40px)),
+      linear-gradient(#fdfdfe, #d9e0e7);
     position: relative; z-index: 1; margin: 0 auto; width: min(100%, 560px);
-    display: flex; gap: 6px; align-items: stretch;
-    background: #f4f6f8; border-radius: 26px 60px 14px 14px; padding: 12px 54px 22px 10px;
-    box-shadow: inset 0 -10px 0 rgba(0,0,0,.06), 0 4px 0 rgba(0,0,0,.12);
+    display: flex; gap: 8px; align-items: stretch;
+    background: radial-gradient(circle at calc(100% - 20px) calc(100% - 9px), #fff4b8 0 4px, transparent 5px), var(--livery);
+    border-radius: 10px 84px 12px 0; padding: 15px 74px 40px 12px;
+    box-shadow: inset 0 -5px 0 #8f9ba7, 0 4px 0 rgba(0,0,0,.12);
   }
-  .train::before { content: ""; position: absolute; left: 0; right: 0; bottom: 12px; height: 10px; background: var(--line); }
-  .train::after { content: ""; position: absolute; right: 12px; top: 16px; width: 30px; height: 40px; background: #2a3b4d; border-radius: 6px 22px 6px 6px; }
-  /* sliding doors: two leaves that slide apart to show the dark inside */
-  .door { position: relative; flex: none; width: 30px; border-radius: 6px; background: #2a3b4d; overflow: hidden; }
-  .door i { position: absolute; top: 0; bottom: 0; width: 50%; background: #dfe6ec; border: 2px solid #9fb0c0; transition: transform .6s ease-in-out; }
-  .door i:first-child { left: 0; border-radius: 6px 0 0 6px; }
-  .door i:last-child { right: 0; border-radius: 0 6px 6px 0; }
-  .door i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 8px; height: 26px; background: #cfe9ff; border-radius: 3px; }
+  /* the car in front of it: same livery, just past a narrow gangway gap, running off the left edge */
+  .train::before {
+    content: ""; position: absolute; top: 0; bottom: 0; right: calc(100% + 6px); width: 600px;
+    background: var(--livery); border-radius: 10px 0 0 0; box-shadow: inset 0 -5px 0 #8f9ba7;
+  }
+  /* windscreen on the sloped front */
+  .train::after {
+    content: ""; position: absolute; right: 12px; top: 9px; width: 56px; bottom: 40px;
+    background: linear-gradient(155deg, #4c6378 0 18%, #101a24 45%); border-radius: 8px 70px 6px 8px;
+  }
+  /* full-height double sliding doors that open to the dark inside */
+  .door { position: relative; flex: none; width: 36px; margin: -6px 0 -30px; border-radius: 4px; background: #0d151d; overflow: hidden; box-shadow: 0 0 0 2px #a7b2bd; }
+  .door i { position: absolute; top: 0; bottom: 0; width: 50%; background: linear-gradient(#f6f8fa, #d6dde4); border: 1px solid #a7b2bd; transition: transform .6s ease-in-out; }
+  .door i:first-child { left: 0; }
+  .door i:last-child { right: 0; }
+  .door i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 7px; height: 40%; background: #24384b; border-radius: 3px; }
   .train.open .door i:first-child { transform: translateX(-100%); }
   .train.open .door i:last-child { transform: translateX(100%); }
-  .wheels { display: flex; justify-content: space-between; width: min(100%, 560px); margin: -10px auto 0; padding: 0 40px; position: relative; z-index: 2; }
+  /* wheels in two bogies, like a real car */
+  .wheels { display: flex; gap: 6px; width: min(100%, 560px); margin: -8px auto 0; padding: 0 56px 0 30px; position: relative; z-index: 2; }
+  .wheels i:nth-child(2) { margin-right: auto; }
   .wheels i {
     width: 26px; height: 26px; border-radius: 50%; border: 5px solid #777;
     background: linear-gradient(90deg, transparent 42%, #aaa 42% 58%, transparent 58%), linear-gradient(0deg, transparent 42%, #aaa 42% 58%, transparent 58%), #333;
   }
   .window {
-    flex: 1; background: #cfe9ff; border-radius: 12px; min-height: 92px; padding: 6px;
+    flex: 1; background: linear-gradient(170deg, #e3f1fb, #c4dcee); border-radius: 8px; min-height: 92px; padding: 6px;
     display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 2px;
-    border: 4px solid #8aa2b8;
+    border: 3px solid #0d151d;
   }
   .rail { height: 10px; background: repeating-linear-gradient(90deg, #6b5b4b 0 18px, #8b7b6b 18px 30px); margin-top: 6px; }
   .platform { background: var(--platform); border-top: 6px solid #f2c94c; min-height: 72px; padding: 8px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: center; }
@@ -185,8 +208,12 @@
   /* little train running along a track (home + end screens) */
   .mini-track { position: relative; height: 40px; overflow: hidden; border-bottom: 6px solid #8b7b6b; }
   .mini-train { position: absolute; bottom: 4px; display: flex; gap: 4px; animation: run 7s linear -2.5s infinite; }
-  .mini-train span { width: 44px; height: 26px; background: var(--line); border-radius: 6px; box-shadow: inset 0 -6px 0 rgba(0,0,0,.18), inset 0 7px 0 #fff; }
-  .mini-train span:last-child { border-radius: 6px 18px 6px 6px; }
+  .mini-train span {
+    width: 46px; height: 26px; border-radius: 4px; box-shadow: 0 2px 0 rgba(0,0,0,.15);
+    background: linear-gradient(to bottom, transparent 62%, var(--line) 62% 78%, transparent 78%),
+      linear-gradient(to bottom, transparent 4px, #1d2834 4px 14px, transparent 14px), linear-gradient(#fdfdfe, #d5dce3);
+  }
+  .mini-train span:last-child { border-radius: 4px 16px 4px 4px; }
   @keyframes run { from { left: -160px; } to { left: 100%; } }
 
   .story { text-align: center; font-size: 19px; margin: 0; line-height: 1.35; }
