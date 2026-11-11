@@ -71,6 +71,9 @@
   .route .ends { position: absolute; top: 36px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
   .route .ends span { max-width: 45%; }
 
+  .signrow { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .music-pill { flex: none; align-self: center; font-size: 16px; padding: 8px 18px; }
+  .icon-btn.off { opacity: .45; }
   .sign {
     align-self: center; background: #10253a; color: #fff; border-radius: 12px; padding: 8px 18px;
     font-size: 20px; display: flex; gap: 10px; align-items: center; border-bottom: 5px solid var(--line);
@@ -148,6 +151,7 @@
 <section id="home" class="screen active">
   <h1>🚆 MRT Math Express</h1>
   <p class="sub">Ride the train. Help the passengers. Count to the last stop!</p>
+  <button class="pill music-pill" id="homeMusicBtn">🎵 Music: on</button>
 
   <h2>1. Pick your MRT line</h2>
   <div class="lines" id="lineList"></div>
@@ -167,13 +171,16 @@
   <div class="topbar">
     <button class="icon-btn" id="homeBtn" aria-label="Back to start">🏠</button>
     <div class="title-chip" id="lineTitle">North South Line</div>
-    <div class="stars" id="starCount">⭐ 0</div>
+    <button class="icon-btn" id="musicBtn" aria-label="Music on or off">🎵</button>
     <button class="icon-btn" id="soundBtn" aria-label="Sound on or off">🔊</button>
   </div>
 
   <div class="route" id="route"></div>
 
-  <div class="sign"><span class="lbl">Now at</span><span id="stationName">Station</span></div>
+  <div class="signrow">
+    <div class="sign"><span class="lbl">Now at</span><span id="stationName">Station</span></div>
+    <div class="stars" id="starCount">⭐ 0</div>
+  </div>
 
   <div class="scene">
     <div class="train" id="train"><div class="window" id="carriage"></div></div>
@@ -232,16 +239,22 @@
   };
   let badges = store.get("mrtBadges", {});
   let soundOn = store.get("mrtSound", true);
+  let musicOn = store.get("mrtMusic", true);
 
   // ---- state ----
   const S = { line: LINES[0], mode: "add", stop: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
 
   // ---- audio ----
   let ac;
+  function audio() {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === "suspended") ac.resume();
+    return ac;
+  }
   function tone(freq, start, dur, type = "sine", vol = 0.18) {
     if (!soundOn) return;
     try {
-      ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+      audio();
       const o = ac.createOscillator(), g = ac.createGain();
       o.type = type; o.frequency.value = freq;
       const t = ac.currentTime + start;
@@ -257,6 +270,67 @@
     wrong() { tone(220, 0, .3, "sine", .12); },
     tick() { tone(880, 0, .08, "square", .05); },
   };
+  // Background music: an original, gentle "train ride" tune made from code (not a recording).
+  // 100 beats per minute, chords C – Am – F – G, looping every 8 bars.
+  const music = (() => {
+    const BEAT = 0.6;
+    const MELODY = [64,67,64,60, 69,67,64,0, 65,69,72,69, 67,0,62,64,
+                    64,67,72,67, 69,72,69,64, 65,64,62,65, 64,62,60,0];
+    const BASS = [48, 45, 41, 43, 48, 45, 41, 43];
+    const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+    let bus, timer, next = 0, step = 0;
+    function note(m, t, dur, type, vol) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.value = hz(m);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(vol, t + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function schedule() {
+      while (next < ac.currentTime + 0.5) {
+        const m = MELODY[step], bar = Math.floor(step / 4), beat = step % 4;
+        if (m) note(m, next, BEAT * 0.9, "triangle", 0.5);
+        if (beat === 0 || beat === 2) note(BASS[bar] - (beat === 2 ? 0 : 12) + 12, next, BEAT * 1.6, "sine", 0.6);
+        if (beat === 1 || beat === 3) note(BASS[bar] + 28, next, 0.12, "sine", 0.15); // soft "tick" like train wheels
+        next += BEAT; step = (step + 1) % MELODY.length;
+      }
+    }
+    return {
+      start() {
+        if (!musicOn || timer) return;
+        try {
+          audio();
+          if (!bus) { bus = ac.createGain(); bus.connect(ac.destination); }
+          bus.gain.cancelScheduledValues(ac.currentTime);
+          bus.gain.setValueAtTime(0.0001, ac.currentTime);
+          bus.gain.exponentialRampToValueAtTime(0.06, ac.currentTime + 1);
+          next = ac.currentTime + 0.1;
+          timer = setInterval(schedule, 120); schedule();
+        } catch {}
+      },
+      stop() {
+        if (!timer) return;
+        clearInterval(timer); timer = null;
+        try { bus.gain.cancelScheduledValues(ac.currentTime); bus.gain.setTargetAtTime(0.0001, ac.currentTime, 0.15); } catch {}
+      },
+      // quieter while the voice is talking so the question is easy to hear
+      duck(on) {
+        if (!timer || !bus) return;
+        try { bus.gain.cancelScheduledValues(ac.currentTime); bus.gain.setTargetAtTime(on ? 0.02 : 0.06, ac.currentTime, 0.1); } catch {}
+      },
+    };
+  })();
+  function syncMusicButtons() {
+    $("musicBtn").classList.toggle("off", !musicOn);
+    $("homeMusicBtn").textContent = musicOn ? "🎵 Music: on" : "🎵 Music: off";
+  }
+  function toggleMusic() {
+    musicOn = !musicOn; store.set("mrtMusic", musicOn);
+    musicOn ? music.start() : music.stop();
+    syncMusicButtons();
+  }
+
   function say(text) {
     if (!soundOn || !("speechSynthesis" in window)) return;
     try {
@@ -265,6 +339,8 @@
       u.rate = 0.9; u.pitch = 1.1;
       const v = speechSynthesis.getVoices().find(v => /en[-_](SG|GB|AU)/i.test(v.lang)) || speechSynthesis.getVoices().find(v => /^en/i.test(v.lang));
       if (v) u.voice = v;
+      u.onstart = () => music.duck(true);
+      u.onend = u.onerror = () => music.duck(false);
       speechSynthesis.speak(u);
     } catch {}
   }
@@ -466,6 +542,11 @@
   $("otherBtn").onclick = () => { renderLines(); show("home"); };
   $("homeBtn").onclick = () => { try { speechSynthesis.cancel(); } catch {} renderLines(); show("home"); };
   $("sayBtn").onclick = speakQ;
+  $("musicBtn").onclick = toggleMusic;
+  $("homeMusicBtn").onclick = e => { e.stopPropagation(); toggleMusic(); };
+  // Browsers only allow sound after the first tap, so start the music then.
+  document.addEventListener("pointerdown", () => music.start(), { once: true });
+  syncMusicButtons();
   $("soundBtn").onclick = () => {
     soundOn = !soundOn; store.set("mrtSound", soundOn);
     $("soundBtn").textContent = soundOn ? "🔊" : "🔇";

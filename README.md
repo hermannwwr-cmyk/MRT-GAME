@@ -16,6 +16,7 @@ Made for young kids:
 - 🔊 reads the question aloud, since many 6-year-olds are still learning to read
 - Wrong answers are gentle: "try again", then a count-on or count-back hint
 - No timers and no losing
+- Gentle background music (🎵 to turn it on or off). It's an original tune written in code, not the real MRT audio. It gets quieter while the voice reads the question.
 
 ## More game ideas
 - **Fare gate / EZ-Link top-up:** pay a fare with 1¢, 5¢ and 10¢ coins (number bonds to 10).
