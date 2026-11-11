@@ -64,10 +64,10 @@
 
   .route { position: relative; height: 54px; margin: 4px 10px 0; }
   .route .track { position: absolute; left: 0; right: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); opacity: .35; }
-  .route .done { position: absolute; left: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); transition: width .9s ease; }
+  .route .done { position: absolute; left: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); }
   .route .dot { position: absolute; top: 12px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #fff; border: 4px solid var(--line); }
   .route .dot.passed { background: var(--line); }
-  .route .marker { position: absolute; top: -6px; margin-left: -16px; font-size: 28px; transition: left .9s ease; }
+  .route .marker { position: absolute; top: -6px; margin-left: -16px; font-size: 28px; }
   .route .ends { position: absolute; top: 36px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
   .route .ends span { max-width: 45%; }
 
@@ -80,27 +80,44 @@
   }
   .sign .lbl { color: #9fb6cc; font-size: 14px; }
 
-  .scene { position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(#bfe3ff, #e8f5ff 60%); padding: 14px 10px 0; min-height: 260px; }
+  .scene { position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(#bfe3ff, #e8f5ff 70%); padding: 64px 10px 0; min-height: 300px; }
+  /* scenery layers scroll by background-position (set from JS while riding) */
+  .layer { position: absolute; left: 0; right: 0; background-repeat: repeat-x; background-position: 0 100%; pointer-events: none; }
+  .layer.far { top: 0; height: 110px; }
+  .layer.near { top: 34px; height: 44px; }
   .train {
-    position: relative; margin: 0 auto; width: min(100%, 560px);
-    background: #f4f6f8; border-radius: 26px 60px 14px 14px; padding: 12px 54px 22px 14px;
+    position: relative; z-index: 1; margin: 0 auto; width: min(100%, 560px);
+    display: flex; gap: 6px; align-items: stretch;
+    background: #f4f6f8; border-radius: 26px 60px 14px 14px; padding: 12px 54px 22px 10px;
     box-shadow: inset 0 -10px 0 rgba(0,0,0,.06), 0 4px 0 rgba(0,0,0,.12);
-    transition: transform .9s ease-in;
   }
   .train::before { content: ""; position: absolute; left: 0; right: 0; bottom: 12px; height: 10px; background: var(--line); }
   .train::after { content: ""; position: absolute; right: 12px; top: 16px; width: 30px; height: 40px; background: #2a3b4d; border-radius: 6px 22px 6px 6px; }
-  .train.leave { transform: translateX(120%); }
-  .train.arrive { transform: translateX(-120%); transition: none; }
-  .wheels { display: flex; justify-content: space-between; width: min(100%, 560px); margin: -10px auto 0; padding: 0 40px; position: relative; z-index: 1; }
-  .wheels i { width: 26px; height: 26px; border-radius: 50%; background: #333; border: 5px solid #777; }
+  /* sliding doors: two leaves that slide apart to show the dark inside */
+  .door { position: relative; flex: none; width: 30px; border-radius: 6px; background: #2a3b4d; overflow: hidden; }
+  .door i { position: absolute; top: 0; bottom: 0; width: 50%; background: #dfe6ec; border: 2px solid #9fb0c0; transition: transform .6s ease-in-out; }
+  .door i:first-child { left: 0; border-radius: 6px 0 0 6px; }
+  .door i:last-child { right: 0; border-radius: 0 6px 6px 0; }
+  .door i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 8px; height: 26px; background: #cfe9ff; border-radius: 3px; }
+  .train.open .door i:first-child { transform: translateX(-100%); }
+  .train.open .door i:last-child { transform: translateX(100%); }
+  .wheels { display: flex; justify-content: space-between; width: min(100%, 560px); margin: -10px auto 0; padding: 0 40px; position: relative; z-index: 2; }
+  .wheels i {
+    width: 26px; height: 26px; border-radius: 50%; border: 5px solid #777;
+    background: linear-gradient(90deg, transparent 42%, #aaa 42% 58%, transparent 58%), linear-gradient(0deg, transparent 42%, #aaa 42% 58%, transparent 58%), #333;
+  }
   .window {
-    background: #cfe9ff; border-radius: 12px; min-height: 92px; padding: 6px;
+    flex: 1; background: #cfe9ff; border-radius: 12px; min-height: 92px; padding: 6px;
     display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 2px;
     border: 4px solid #8aa2b8;
   }
   .rail { height: 10px; background: repeating-linear-gradient(90deg, #6b5b4b 0 18px, #8b7b6b 18px 30px); margin-top: 6px; }
   .platform { background: var(--platform); border-top: 6px solid #f2c94c; min-height: 72px; padding: 8px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: center; }
   .platform .note { color: var(--muted); font-size: 15px; }
+  .tunnel {
+    position: absolute; inset: 0; z-index: 3; opacity: 0; pointer-events: none;
+    background: repeating-linear-gradient(90deg, transparent 0 140px, rgba(255,214,102,.55) 140px 150px), #0b1622;
+  }
 
   .pax {
     position: relative; font-size: clamp(24px, 6vw, 34px); line-height: 1; padding: 2px; border-radius: 10px;
@@ -113,10 +130,17 @@
   .pax.gone { opacity: 0; transform: translateY(60px); }
   .pax.hop { transform: translateY(-80px); opacity: 0; }
 
+  /* little train running along a track (home + end screens) */
+  .mini-track { position: relative; height: 40px; overflow: hidden; border-bottom: 6px solid #8b7b6b; }
+  .mini-train { position: absolute; bottom: 4px; display: flex; gap: 4px; animation: run 7s linear -2.5s infinite; }
+  .mini-train span { width: 44px; height: 26px; background: var(--line); border-radius: 6px; box-shadow: inset 0 -6px 0 rgba(0,0,0,.18), inset 0 7px 0 #fff; }
+  .mini-train span:last-child { border-radius: 6px 18px 6px 6px; }
+  @keyframes run { from { left: -160px; } to { left: 100%; } }
+
   .story { text-align: center; font-size: 19px; margin: 0; line-height: 1.35; }
-  .equation { text-align: center; font-size: clamp(44px, 13vw, 72px); font-weight: bold; letter-spacing: 2px; margin: 0; }
+  .equation { min-height: 1.2em; text-align: center; font-size: clamp(44px, 13vw, 72px); font-weight: bold; letter-spacing: 2px; margin: 0; }
   .equation .q { display: inline-block; min-width: 1.1em; color: var(--line); border-bottom: 6px dashed var(--line); }
-  .answers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .answers { min-height: 86px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .ans {
     background: var(--card); border-radius: 22px; font-size: clamp(40px, 12vw, 60px); font-weight: bold;
     padding: 10px 0; box-shadow: 0 6px 0 rgba(0,0,0,.18); border: 4px solid var(--line);
@@ -140,8 +164,8 @@
   @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
 
   @media (prefers-reduced-motion: reduce) {
-    .train, .route .done, .route .marker, .pax { transition: none; }
-    .big-emoji, .confetti { animation: none; }
+    .pax, .door i { transition: none; }
+    .big-emoji, .confetti, .mini-train { animation: none; }
   }
 </style>
 </head>
@@ -151,6 +175,7 @@
 <section id="home" class="screen active">
   <h1>🚆 MRT Math Express</h1>
   <p class="sub">Ride the train. Help the passengers. Count to the last stop!</p>
+  <div class="mini-track" aria-hidden="true"><div class="mini-train"><span></span><span></span><span></span></div></div>
   <button class="pill music-pill" id="homeMusicBtn">🎵 Music: on</button>
 
   <h2>1. Pick your MRT line</h2>
@@ -178,15 +203,22 @@
   <div class="route" id="route"></div>
 
   <div class="signrow">
-    <div class="sign"><span class="lbl">Now at</span><span id="stationName">Station</span></div>
+    <div class="sign"><span class="lbl" id="signLbl">Now at</span><span id="stationName">Station</span></div>
     <div class="stars" id="starCount">⭐ 0</div>
   </div>
 
-  <div class="scene">
-    <div class="train" id="train"><div class="window" id="carriage"></div></div>
-    <div class="wheels"><i></i><i></i><i></i><i></i></div>
-    <div class="rail"></div>
+  <div class="scene" id="scene">
+    <div class="layer far" id="layerFar"></div>
+    <div class="layer near" id="layerNear"></div>
+    <div class="train open" id="train">
+      <div class="door"><i></i><i></i></div>
+      <div class="window" id="carriage"></div>
+      <div class="door"><i></i><i></i></div>
+    </div>
+    <div class="wheels" id="wheels"><i></i><i></i><i></i><i></i></div>
+    <div class="rail" id="rail"></div>
     <div class="platform" id="platform"></div>
+    <div class="tunnel" id="tunnel"></div>
   </div>
 
   <p class="story" id="story"></p>
@@ -203,6 +235,7 @@
   <h1 id="endTitle">You made it!</h1>
   <p class="sub" id="endText"></p>
   <div class="end-stars" id="endStars"></div>
+  <div class="mini-track" aria-hidden="true"><div class="mini-train"><span></span><span></span><span></span></div></div>
   <button class="go" id="againBtn">Ride again 🔁</button>
   <button class="pill" id="otherBtn">🗺️ Choose another line</button>
 </section>
@@ -242,7 +275,7 @@
   let musicOn = store.get("mrtMusic", true);
 
   // ---- state ----
-  const S = { line: LINES[0], mode: "add", stop: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
+  const S = { gen: 0, line: LINES[0], mode: "add", at: 0, stars: 0, q: null, tries: 0, busy: false, counted: 0, last: "" };
 
   // ---- audio ----
   let ac;
@@ -269,7 +302,24 @@
     right() { [523, 659, 784, 1047].forEach((f, i) => tone(f, i * .09, .25, "triangle")); },
     wrong() { tone(220, 0, .3, "sine", .12); },
     tick() { tone(880, 0, .08, "square", .05); },
+    doorsClosing() { [0, .22, .44, .66].forEach(t => tone(1175, t, .12, "square", .05)); },
   };
+  // Low train rumble whose loudness follows the train's speed (0..1).
+  function rumble() {
+    if (!soundOn) return { set() {}, stop() {} };
+    try {
+      audio();
+      const len = ac.sampleRate * 2, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      src.buffer = buf; src.loop = true; f.type = "lowpass"; f.frequency.value = 220; g.gain.value = 0;
+      src.connect(f).connect(g).connect(ac.destination); src.start();
+      return {
+        set(v) { g.gain.setTargetAtTime(v * 0.22, ac.currentTime, 0.05); f.frequency.setTargetAtTime(160 + v * 260, ac.currentTime, 0.05); },
+        stop() { g.gain.setTargetAtTime(0, ac.currentTime, 0.1); src.stop(ac.currentTime + 0.5); },
+      };
+    } catch { return { set() {}, stop() {} }; }
+  }
   // Background music: an original, gentle "train ride" tune made from code (not a recording).
   // 100 beats per minute, chords C – Am – F – G, looping every 8 bars.
   const music = (() => {
@@ -345,6 +395,23 @@
     } catch {}
   }
 
+  // ---- scenery art: simple SVG tiles that repeat sideways ----
+  const svgUrl = svg => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  (function paintScenery() {
+    let city = "";
+    [[0,34,62],[38,26,40],[68,40,80],[112,30,52],[146,22,96],[172,38,58],[214,28,74],[246,44,46],[294,30,88],[328,30,54]].forEach(([x, w, h]) => {
+      city += `<rect x="${x}" y="${110 - h}" width="${w}" height="${h}" rx="3" fill="#9dbcd9"/>`;
+      for (let y = 110 - h + 8; y < 104; y += 12) for (let wx = x + 5; wx < x + w - 6; wx += 9) city += `<rect x="${wx}" y="${y}" width="5" height="6" fill="#d6e8f7"/>`;
+    });
+    $("layerFar").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="110">${city}</svg>`);
+    let trees = "";
+    [[20,16],[70,12],[110,18],[170,14],[215,17],[270,13]].forEach(([x, r]) => {
+      trees += `<rect x="${x - 2}" y="${44 - 14}" width="4" height="14" fill="#7a5a3a"/><circle cx="${x}" cy="${44 - 14 - r * 0.6}" r="${r}" fill="#5cb85c"/><circle cx="${x + r * 0.5}" cy="${44 - 14 - r * 0.4}" r="${r * 0.7}" fill="#4aa64a"/>`;
+    });
+    $("layerNear").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="44">${trees}</svg>`);
+  })();
+  const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   // ---- home screen ----
   function renderLines() {
     $("lineList").innerHTML = "";
@@ -354,6 +421,7 @@
       b.style.setProperty("--c", L.color);
       b.innerHTML = `<span class="code">${L.id}</span><span class="name">${L.name}</span>${badges[L.id] ? `<span class="badge" title="Completed">🏅</span>` : ""}`;
       b.onclick = () => { S.line = L; renderLines(); sfx.tick(); };
+      document.documentElement.style.setProperty("--line", S.line.color);
       $("lineList").appendChild(b);
     });
   }
@@ -390,21 +458,29 @@
 
   // ---- game ----
   function startGame() {
-    S.stop = 0; S.stars = 0; S.last = "";
+    const gen = ++S.gen; // bumping this cancels timers/rides from an earlier game
+    S.at = 0; S.stars = 0; S.last = "";
     document.documentElement.style.setProperty("--line", S.line.color);
     $("lineTitle").textContent = S.line.name;
     $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
-    renderRoute();
+    $("starCount").textContent = "⭐ 0";
+    renderRoute(0);
+    $("signLbl").textContent = "Start";
+    $("stationName").textContent = S.line.stations[0];
+    $("carriage").innerHTML = "";
+    $("platform").innerHTML = `<span class="note">All aboard at ${S.line.stations[0]}! 🚆</span>`;
+    $("train").classList.add("open");
     show("game");
-    nextQuestion(true);
+    setTimeout(() => gen === S.gen && depart(), 1200);
   }
 
-  function renderRoute() {
+  // pos can be fractional while the train is between stations
+  function renderRoute(pos) {
     const st = S.line.stations, n = st.length - 1;
     const pct = i => (i / n) * 100;
-    let html = `<div class="track"></div><div class="done" style="width:${pct(S.stop)}%"></div>`;
-    st.forEach((_, i) => { html += `<div class="dot ${i <= S.stop ? "passed" : ""}" style="left:${pct(i)}%"></div>`; });
-    html += `<div class="marker" style="left:${pct(S.stop)}%">🚆</div>`;
+    let html = `<div class="track"></div><div class="done" id="routeDone" style="width:${pct(pos)}%"></div>`;
+    st.forEach((_, i) => { html += `<div class="dot ${i <= pos ? "passed" : ""}" style="left:${pct(i)}%"></div>`; });
+    html += `<div class="marker" id="routeMarker" style="left:${pct(pos)}%">🚆</div>`;
     html += `<div class="ends"><span>${st[0]}</span><span style="text-align:right">${st[n]}</span></div>`;
     $("route").innerHTML = html;
   }
@@ -427,27 +503,97 @@
     say(String(S.counted));
   }
 
-  function nextQuestion(first) {
-    const q = S.q = makeQuestion();
-    S.tries = 0; S.busy = false; S.counted = 0;
-    const station = S.line.stations[S.stop + 1];
-    $("stationName").textContent = station;
+  // Leave the station: doors close, then ride to the next station.
+  function depart() {
+    const gen = S.gen;
+    S.busy = true;
+    S.q = makeQuestion();
+    const next = S.line.stations[S.at + 1];
+    $("story").innerHTML = `Doors closing… Next station: <b>${next}</b>`;
+    $("equation").innerHTML = ""; $("answers").innerHTML = "";
     $("feedback").textContent = ""; $("feedback").className = "feedback";
+    $("train").classList.remove("open");
+    sfx.doorsClosing();
+    say(`Doors closing. Next station, ${next}.`);
+    setTimeout(() => {
+      if (gen !== S.gen) return;
+      $("signLbl").textContent = "Next stop";
+      $("stationName").textContent = next;
+      ride(() => fillScene(S.q), arrive);
+    }, reduceMotion ? 200 : 900);
+  }
 
+  // The camera rides with the train: scenery, track and platform scroll past.
+  // The train speeds up, cruises through a tunnel, then slows into the station.
+  function ride(onMid, onDone) {
+    const scene = $("scene"), W = scene.clientWidth, D = 2 * W + 40;
+    const T = reduceMotion ? 500 : 3400;
+    const from = S.at, n = S.line.stations.length - 1;
+    const far = $("layerFar"), near = $("layerNear"), rail = $("rail"), plat = $("platform");
+    const train = $("train"), wheels = [...$("wheels").children], tunnel = $("tunnel");
+    const marker = $("routeMarker"), done = $("routeDone");
+    const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+    const speed = p => (p < .5 ? 12 * p * p : 3 * Math.pow(-2 * p + 2, 2)) / 3; // 0..1
+    const sound = rumble(), gen = S.gen;
+    let start = null, swapped = false;
+    function frame(ts) {
+      if (gen !== S.gen) { sound.stop(); plat.style.transform = train.style.transform = ""; tunnel.style.opacity = 0; return; }
+      if (start === null) start = ts;
+      const p = Math.min(1, (ts - start) / T), off = ease(p) * D;
+      far.style.backgroundPositionX = `${-off * 0.2}px`;
+      near.style.backgroundPositionX = `${-off * 0.55}px`;
+      rail.style.backgroundPositionX = `${-off}px`;
+      if (off < W + 20) plat.style.transform = `translateX(${-off}px)`;
+      else {
+        if (!swapped) { swapped = true; onMid(); }
+        plat.style.transform = `translateX(${D - off}px)`;
+      }
+      const spin = (off / 13) * 180 / Math.PI;
+      wheels.forEach(w => w.style.transform = `rotate(${spin}deg)`);
+      train.style.transform = reduceMotion ? "" : `translateY(${Math.sin(off / 16) * 1.5 * speed(p)}px)`;
+      tunnel.style.opacity = Math.max(0, 1 - Math.abs(p - 0.5) / 0.18) * 0.85;
+      tunnel.style.backgroundPositionX = `${-off * 1.4}px`;
+      const pos = from + ease(p);
+      marker.style.left = done.style.width = `${(pos / n) * 100}%`;
+      sound.set(speed(p));
+      if (p < 1) requestAnimationFrame(frame);
+      else {
+        if (!swapped) onMid();
+        plat.style.transform = ""; train.style.transform = ""; tunnel.style.opacity = 0;
+        sound.stop();
+        onDone();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // Put this question's passengers in the train and on the platform.
+  function fillScene(q) {
     const car = $("carriage"), plat = $("platform");
     car.innerHTML = ""; plat.innerHTML = "";
     if (q.op === "+") {
       for (let i = 0; i < q.a; i++) car.appendChild(personEl());
       for (let i = 0; i < q.b; i++) plat.appendChild(personEl("board"));
-      $("story").innerHTML = `There ${q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`} on the train.<br><b>${q.b}</b> more get on at <b>${station}</b>. How many now?`;
     } else {
       const idx = shuffle([...Array(q.a).keys()]).slice(0, q.b);
       for (let i = 0; i < q.a; i++) car.appendChild(personEl(idx.includes(i) ? "leaving" : ""));
       plat.innerHTML = `<span class="note">Platform – mind the gap!</span>`;
-      $("story").innerHTML = `There are <b>${q.a}</b> people on the train.<br><b>${q.b}</b> get off at <b>${station}</b>. How many are left?`;
     }
-    $("equation").innerHTML = `${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = <span class="q">?</span>`;
+  }
 
+  // Pull into the station: doors open, then ask the question.
+  function arrive() {
+    S.at++;
+    renderRoute(S.at);
+    $("signLbl").textContent = "Now at";
+    $("train").classList.add("open");
+    sfx.chime();
+    const q = S.q, station = S.line.stations[S.at];
+    S.tries = 0; S.counted = 0; S.busy = false;
+    $("story").innerHTML = q.op === "+"
+      ? `There ${q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`} on the train.<br><b>${q.b}</b> more ${q.b === 1 ? "gets" : "get"} on at <b>${station}</b>. How many now?`
+      : `There ${q.a === 1 ? "is <b>1</b> person" : `are <b>${q.a}</b> people`} on the train.<br><b>${q.b}</b> ${q.b === 1 ? "gets" : "get"} off at <b>${station}</b>. How many are left?`;
+    $("equation").innerHTML = `${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = <span class="q">?</span>`;
     const box = $("answers"); box.innerHTML = "";
     q.opts.forEach(v => {
       const b = document.createElement("button");
@@ -455,17 +601,12 @@
       b.onclick = () => answer(v, b);
       box.appendChild(b);
     });
-
-    // train arrives
-    const train = $("train");
-    train.classList.remove("leave"); train.classList.add("arrive");
-    void train.offsetWidth; train.classList.remove("arrive");
-    if (!first) sfx.chime();
-    setTimeout(speakQ, first ? 200 : 1300);
+    setTimeout(speakQ, 900);
   }
 
   function speakQ() {
-    const q = S.q, st = S.line.stations[S.stop + 1];
+    if (!S.q || S.busy) return;
+    const q = S.q, st = S.line.stations[S.at];
     say(q.op === "+"
       ? `${q.a} on the train. ${q.b} more get on at ${st}. What is ${q.a} plus ${q.b}?`
       : `${q.a} on the train. ${q.b} get off at ${st}. What is ${q.a} take away ${q.b}?`);
@@ -504,13 +645,12 @@
       $("carriage").querySelectorAll(".pax.leaving").forEach((p, i) => setTimeout(() => p.classList.add("gone"), i * 120));
     }
 
+    const gen = S.gen;
     setTimeout(() => {
-      S.stop++;
-      renderRoute();
-      $("train").classList.add("leave");
-      if (S.stop >= S.line.stations.length - 1) setTimeout(finish, 1000);
-      else setTimeout(() => nextQuestion(false), 1000);
-    }, 2200);
+      if (gen !== S.gen) return;
+      if (S.at >= S.line.stations.length - 1) finish();
+      else depart();
+    }, 2000);
   }
 
   function finish() {
@@ -540,7 +680,7 @@
   $("goBtn").onclick = startGame;
   $("againBtn").onclick = startGame;
   $("otherBtn").onclick = () => { renderLines(); show("home"); };
-  $("homeBtn").onclick = () => { try { speechSynthesis.cancel(); } catch {} renderLines(); show("home"); };
+  $("homeBtn").onclick = () => { S.gen++; try { speechSynthesis.cancel(); } catch {} renderLines(); show("home"); };
   $("sayBtn").onclick = speakQ;
   $("musicBtn").onclick = toggleMusic;
   $("homeMusicBtn").onclick = e => { e.stopPropagation(); toggleMusic(); };
