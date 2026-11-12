@@ -63,7 +63,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 
   Bedok South (TE), Sungei Bedok (TE and DT) and Xilin (DT) open on 26 Dec 2026 and need adding then.
 - **`drawMap(svg, options)`** draws the network from `POS`. It's used by:
-  - the start picker `#picker`, opened from the 📍 `#startPick` chip. The map is the only way to pick (there's no list). It's drawn 1300px wide with the line highlighted and every station's name (the `names` option). Names are set at right angles to the line and are tappable (`.pick-label[data-name]`), and the chosen station is in red. There's a direction choice for mid-line stations.
+  - the start picker `#picker`, opened from the 📍 `#startPick` chip. The map is the only way to pick (there's no list). It's drawn 1300px wide with the line highlighted and every station's name (the `names` option). Names are set at right angles to the line, on alternating sides (flipped back near the map's edges), and are tappable (`.pick-label[data-name]`), and the chosen station is in red. There's a direction choice for mid-line stations.
   - the in-game `#mapView`, opened from 🗺️: the train at `here`, ⭐ on `S.trail`, and labels for line ends and `LANDMARKS`
 
   The SVG is 960px wide inside a scrolling box, and `centreOn()` scrolls to a station.
