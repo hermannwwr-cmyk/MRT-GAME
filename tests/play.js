@@ -280,6 +280,13 @@ const CHECKS = {
     ok('sound: audio running and music playing after the first tap', s.ac === 'running' && s.osc > 0, JSON.stringify(s));
     await go(p); await p.waitForTimeout(8000);
     ok('sound: the voice reads during the game', (await state()).spoken > 1);
+    // Phones pause sound when the screen locks or another app plays; the next tap must bring it back.
+    await p.evaluate(() => window.__ac.suspend());
+    await p.tap('#sayBtn'); await p.waitForTimeout(800);
+    const back = await state();
+    ok('sound: after a pause, sound comes back (on its own or with the next tap)', back.ac === 'running', JSON.stringify(back));
+    const before = (await state()).osc; await p.waitForTimeout(2500);
+    ok('sound: music carries on after the pause', (await state()).osc > before);
     ok('sound: no script errors', !p.errs.length, p.errs.join('; '));
     await b.close();
   },
