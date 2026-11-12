@@ -26,6 +26,8 @@ Made for young kids:
 - At interchanges (like Bishan or Dhoby Ghaut), choose to stay on or change trains, and keep riding across the network
 - Tap 🗺️ during a ride to see the whole MRT map and where the train is
 - Surprises along the way: count the birds, balloons, butterflies or cats for a 🎁
+- Real underground and above-ground stations: the train goes into tunnels and comes out under the open sky where the real MRT does, and underground platforms look indoor
+- Day and night and changing weather: the ride starts at the real time of day, moves on every 6 stations (morning, afternoon, sunset, night), and the weather (sunny, cloudy, rain, thunderstorm) changes every 3–5 stations
 - Gentle background music (🎵 to turn it on or off). It's an original tune written in code, not the real MRT audio. It gets quieter while the voice reads the question.
 
 ## More game ideas
