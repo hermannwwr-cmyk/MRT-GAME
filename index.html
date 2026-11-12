@@ -285,7 +285,6 @@
   @keyframes bob { to { transform: translateY(-8px); } }
 
   /* long lines: small dots on the route strip */
-  .route .dot.small { width: 10px; height: 10px; margin-left: -5px; top: 17px; border-width: 2px; }
 
   /* ---------- Game ---------- */
   .topbar { display: flex; align-items: center; gap: 8px; }
@@ -293,14 +292,19 @@
   .title-chip { flex: 1; background: var(--line); color: #fff; border-radius: 14px; padding: 10px 8px; font-size: 16px; font-weight: bold; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stars { font-size: 20px; background: var(--card); border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow); white-space: nowrap; }
 
-  .route { position: relative; height: 54px; margin: 4px 10px 0; }
-  .route .track { position: absolute; left: 0; right: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); opacity: .35; }
-  .route .done { position: absolute; left: 0; top: 18px; height: 8px; border-radius: 4px; background: var(--line); }
-  .route .dot { position: absolute; top: 12px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #fff; border: 4px solid var(--line); }
+  /* Route strip: the line's first and last stations named at the two ends, and a close-up "window" of big dots
+     for the stations around the train (more of them ahead than behind). "⋯" shows the line carries on. */
+  .route { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; height: 42px; }
+  .route { gap: 6px; }
+  .route .end { flex: none; max-width: 66px; font-size: 11.5px; font-weight: 800; line-height: 1.1; color: var(--ink); text-align: center; overflow-wrap: anywhere; }
+  .route .rail-box { position: relative; flex: 1; min-width: 0; height: 42px; }
+  .route .track { position: absolute; left: 0; right: 0; top: 27px; height: 8px; margin-top: -4px; border-radius: 4px; background: var(--line); opacity: .35; }
+  .route .done { position: absolute; left: 0; top: 27px; height: 8px; margin-top: -4px; border-radius: 4px; background: var(--line); }
+  .route .dot { position: absolute; top: 27px; width: 18px; height: 18px; border-radius: 50%; background: #fff; border: 4px solid var(--line); transform: translate(-50%, -50%); }
   .route .dot.passed { background: var(--line); }
-  .route .marker { position: absolute; top: -6px; margin-left: -16px; font-size: 28px; }
-  .route .ends { position: absolute; top: 36px; left: 0; right: 0; display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
-  .route .ends span { max-width: 45%; }
+  .route .more { position: absolute; top: 27px; transform: translateY(-50%); background: var(--bg); color: var(--line); font-weight: 900; font-size: 18px; line-height: 1; padding: 0 2px; }
+  .route .more.l { left: 0; } .route .more.r { right: 0; }
+  .route .marker { position: absolute; top: -2px; margin-left: -13px; font-size: 24px; }
 
   .signrow { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
   .icon-btn.off { opacity: .45; }
@@ -977,13 +981,13 @@
     $("lineTitle").textContent = S.line.name;
     $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
     $("starCount").textContent = "⭐ 0";
-    renderRoute(S.at);
     setSign("Start", st[S.at]);
     $("carriage").innerHTML = "";
     $("platform").innerHTML = `<span class="note">Starting at ${st[S.at]} 🚆</span>`;
     $("train").classList.add("open");
     $("tally").classList.remove("show");
     show("game");
+    renderRoute(S.at); // after show(): the strip sizes its window to the space it has
     setTimeout(() => gen === S.gen && depart(), 1200);
   }
 
@@ -995,16 +999,44 @@
     updateStartChip();
   }
 
+  // Route strip window: which stations get a dot (a…z) and where station i sits, in % of the strip.
+  // More stations ahead than behind (the train shows 1 behind and the rest ahead), clamped at the line's ends.
+  const ROUTE_EDGE = 24; // px kept free at each side of the strip for the "⋯", so it never covers a dot
+  function routeWindow() {
+    const n = S.line.stations.length - 1, box = $("route").querySelector(".rail-box");
+    const width = (box && box.clientWidth) || 220;
+    const count = Math.max(4, Math.min(8, Math.floor((width - 2 * ROUTE_EDGE) / 28) + 1)); // stations shown
+    const span = Math.min(n, count - 1), behind = 1;
+    let a = S.dir > 0 ? S.at - behind : S.at - (span - behind);
+    a = Math.max(0, Math.min(a, n - span));
+    const pad = 100 * ROUTE_EDGE / width;
+    return { a, z: a + span, pad, step: span ? (100 - 2 * pad) / span : 0 };
+  }
+  const routeX = (w, i) => Math.max(0, Math.min(100, w.pad + (i - w.a) * w.step));
+
   // pos can be fractional while the train is between stations
   function renderRoute(pos) {
-    const st = S.line.stations, n = st.length - 1;
-    const pct = i => (i / n) * 100;
-    const lo = Math.min(S.from, pos), hi = Math.max(S.from, pos), small = n > 12 ? " small" : "";
-    let html = `<div class="track"></div><div class="done" id="routeDone" style="left:${pct(lo)}%;width:${pct(hi) - pct(lo)}%"></div>`;
-    st.forEach((_, i) => { html += `<div class="dot${small} ${i >= lo && i <= hi ? "passed" : ""}" style="left:${pct(i)}%"></div>`; });
-    html += `<div class="marker" id="routeMarker" style="left:${pct(pos)}%">🚆</div>`;
-    html += `<div class="ends"><span>${st[0]}</span><span style="text-align:right">${st[n]}</span></div>`;
-    $("route").innerHTML = html;
+    const st = S.line.stations, n = st.length - 1, route = $("route");
+    // the strip's frame first, so the window can be sized to the space between the end names
+    route.innerHTML = `<span class="end">${st[0]}</span><div class="rail-box"></div><span class="end">${st[n]}</span>`;
+    const w = S.routeWin = routeWindow();
+    const lo = Math.min(S.from, pos), hi = Math.max(S.from, pos);
+    let html = `<div class="track" style="left:${w.a > 0 ? 0 : w.pad}%;right:${w.z < n ? 0 : w.pad}%"></div>`;
+    html += `<div class="done" id="routeDone"></div>`;
+    for (let i = w.a; i <= w.z; i++) html += `<div class="dot ${i >= lo && i <= hi ? "passed" : ""}" style="left:${routeX(w, i)}%"></div>`;
+    if (w.a > 0) html += `<div class="more l">⋯</div>`;
+    if (w.z < n) html += `<div class="more r">⋯</div>`;
+    html += `<div class="marker" id="routeMarker"></div>`;
+    route.querySelector(".rail-box").innerHTML = html;
+    $("routeMarker").textContent = "🚆";
+    placeRoute(pos);
+  }
+  // Move the 🚆 and the travelled stretch (used on render and every frame of a ride).
+  function placeRoute(pos) {
+    const w = S.routeWin, lo = Math.min(S.from, pos), hi = Math.max(S.from, pos);
+    const l = lo < w.a ? 0 : routeX(w, lo), r = hi > w.z ? 100 : routeX(w, hi);
+    $("routeDone").style.cssText = `left:${l}%;width:${Math.max(0, r - l)}%`;
+    $("routeMarker").style.left = routeX(w, pos) + "%";
   }
 
   function personEl(cls) {
@@ -1086,9 +1118,7 @@
       train.style.transform = reduceMotion ? "" : `translateY(${Math.sin(off / 16) * 1.5 * speed(p)}px)`;
       tunnel.style.opacity = dark(p) * 0.88;
       tunnel.style.backgroundPositionX = `${-off * 1.4}px`;
-      const pos = from + dir * ease(p), lo = Math.min(start0, pos), hi = Math.max(start0, pos);
-      marker.style.left = `${(pos / n) * 100}%`;
-      done.style.left = `${(lo / n) * 100}%`; done.style.width = `${((hi - lo) / n) * 100}%`;
+      placeRoute(from + dir * ease(p));
       sound.set(speed(p));
       if (p < 1) requestAnimationFrame(frame);
       else {
@@ -1678,6 +1708,7 @@
   };
   sideDock.addEventListener?.("change", fitDock);
   if ("ResizeObserver" in window) new ResizeObserver(fitDock).observe(dock); else addEventListener("resize", fitDock);
+  addEventListener("resize", () => { if (S.routeWin && $("game").classList.contains("active") && !S.riding) renderRoute(S.at); });
   fitDock();
   $("goSignal").onclick = go;
   paintLine();

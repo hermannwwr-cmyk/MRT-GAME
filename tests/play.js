@@ -204,6 +204,12 @@ const CHECKS = {
         return r.width > 20 && r.height > 20 && cs.opacity !== '0' && cs.visibility !== 'hidden' && r.right <= innerWidth + 1;
       }));
       ok(`screens: ${name}: station sign, ⭐ count and 🗺️ button all visible`, chips.every(Boolean), JSON.stringify(chips));
+      const strip = await p.evaluate(() => {
+        const dots = [...document.querySelectorAll('#route .dot')], ends = [...document.querySelectorAll('#route .end')].map(e => e.textContent);
+        return { dots: dots.length, size: Math.round(Math.min(...dots.map(d => d.getBoundingClientRect().width))), ends };
+      });
+      ok(`screens: ${name}: route strip shows 4–9 big dots between the end station names`, strip.dots >= 4 && strip.dots <= 9 && strip.size >= 16
+        && strip.ends[0] === 'Jurong East' && strip.ends[1] === 'Marina South Pier', JSON.stringify(strip));
       await p.tap('#mapBtn'); await p.waitForTimeout(300);
       ok(`screens: ${name}: map opens, no sideways page scroll`, (await p.isVisible('#mapView')) && (await noSideScroll(p)));
       ok(`screens: ${name}: no script errors`, !p.errs.length, p.errs.join('; '));
