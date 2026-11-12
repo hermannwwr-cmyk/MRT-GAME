@@ -60,10 +60,11 @@ async function play(p, choose = () => 0) {
     }, null, { timeout: 40000, polling: 200 }).then(h => h.jsonValue());
     if (what === 'end') break;
     if (what === 'xchg') {
-      const labels = await p.$$eval('#xOpts .x-opt', bs => bs.map(b => b.textContent));
+      // each platform sign reads "kind:line:towards", e.g. "stay:NS:Marina South Pier" or "change:DT:Expo"
+      const labels = await p.$$eval('#xOpts .psign', bs => bs.map(b => `${b.dataset.kind}:${b.dataset.line || ''}:${b.dataset.to || ''}`));
       const i = choose(labels);
-      if (!/^Stay/.test(labels[i])) r.changes++;
-      await p.click(`#xOpts .x-opt >> nth=${i}`);
+      if (!labels[i].startsWith('stay')) r.changes++;
+      await p.click(`#xOpts .psign >> nth=${i}`);
       await p.waitForFunction(() => document.getElementById('xchg').hidden);
     } else if (what === 'surprise') {
       const n = await p.$$eval('.sitem', x => x.length);
@@ -85,7 +86,7 @@ async function play(p, choose = () => 0) {
   }
   return r;
 }
-const stay = labels => Math.max(0, labels.findIndex(l => /^Stay/.test(l)));
+const stay = labels => Math.max(0, labels.findIndex(l => l.startsWith('stay')));
 
 // ---------- checks ----------
 const CHECKS = {
@@ -119,14 +120,16 @@ const CHECKS = {
     await p.tap('#startPick'); await p.waitForSelector('#picker:not([hidden])');
     await p.click('#pickMap .pick-label[data-name="Bishan"]');
     await p.waitForSelector('#dirRow:not([hidden])');
-    await p.click('#dirRow .dir-btn >> nth=0'); // towards Marina South Pier
+    const signs = await p.$$eval('#dirRow .psign', bs => bs.map(b => b.dataset.to));
+    ok('change: platform signs A/B show both directions', signs.join('|') === 'Marina South Pier|Jurong East', signs.join('|'));
+    await p.click('#dirRow .psign >> nth=0'); // Platform A, towards Marina South Pier
     await p.waitForSelector('#picker', { state: 'hidden' });
     ok('change: start chip says Bishan', (await p.textContent('#startPick')).includes('Bishan'));
     await go(p);
     ok('change: ride starts at Bishan', (await p.textContent('#stationName')) === 'Bishan');
     let first = true;
     const r = await play(p, labels => {
-      const i = labels.findIndex(l => /^Change to the Downtown Line.*Expo/.test(l));
+      const i = labels.indexOf('change:DT:Expo');
       if (first && i >= 0) { first = false; return i; }
       return stay(labels);
     });

@@ -244,18 +244,34 @@
   #picker .map-scroll svg { width: 1300px; }
   #picker .ov-card { height: calc(100dvh - 24px); }
   .pick-label { cursor: pointer; }
-  .dir-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .dir-row { display: grid; gap: 10px; flex: none; }
   .dir-row[hidden] { display: none; }
-  .dir-btn, .x-opt {
-    border: 0; border-radius: 16px; padding: 12px 8px; font-size: 17px; font-weight: bold; color: #fff;
-    box-shadow: 0 5px 0 rgba(0,0,0,.22); text-shadow: 0 1px 1px rgba(0,0,0,.25); line-height: 1.2;
+  /* Every direction choice is a platform sign: platform letter, line, "towards" destination, an arrow,
+     and the next stops on a strip like the route map above the train doors. */
+  .psign {
+    display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; border: 0; border-radius: 12px; padding: 10px 12px;
+    background: linear-gradient(#262e36, #12181e); color: #fff; box-shadow: 0 5px 0 rgba(0,0,0,.3), inset 0 0 0 2px #3a4651;
   }
-  .dir-btn small, .x-opt small { display: block; font-size: 13px; font-weight: normal; }
+  .psign:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,.3), inset 0 0 0 2px #3a4651; }
+  .psign .top { display: flex; align-items: center; gap: 10px; }
+  .psign .plat { flex: none; width: 46px; height: 46px; border-radius: 10px; background: #f2c94c; color: #12181e; font-weight: 900; font-size: 26px; display: flex; align-items: center; justify-content: center; }
+  .psign .txt { flex: 1; min-width: 0; }
+  .psign .to { font-size: 12px; color: #b9c4cf; letter-spacing: .4px; text-transform: uppercase; line-height: 1.3; }
+  .psign .to .lc { display: inline-block; color: #fff; font-weight: 800; border-radius: 5px; padding: 0 5px; margin-right: 4px; letter-spacing: 0; }
+  .psign .dest { font-size: 21px; font-weight: 800; line-height: 1.15; }
+  .psign .arrow { flex: none; width: 44px; height: 44px; border-radius: 50%; background: #fff; color: #12181e; font-size: 28px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  .psign .strip { display: flex; align-items: center; padding: 0 4px; }
+  .psign .strip i { flex: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 3px solid var(--c); }
+  .psign .strip b { flex: 1; height: 5px; background: var(--c); }
+  .psign .names { display: flex; gap: 4px; font-size: 11px; line-height: 1.15; color: #b9c4cf; }
+  .psign .names span { flex: 1; text-align: center; }
+  .psign .names span:first-child { text-align: left; color: #fff; font-weight: bold; }
+  .psign .names span:last-child { text-align: right; }
+  .psign.end .plat { background: #fff; }
   .xchg-card { max-width: 440px; text-align: center; overflow: auto; }
   .xchg-card h3 { margin: 4px 0 0; font-size: 23px; }
   .xchg-sub { margin: 0; color: var(--muted); font-size: 17px; }
   .x-opts { display: grid; gap: 10px; }
-  .x-opt.end { background: #5b6b7c; }
 
   /* surprises during the ride */
   .sitem { position: absolute; z-index: 3; font-size: 30px; line-height: 1; pointer-events: none; animation: bob 1.4s ease-in-out infinite alternate; transition: transform .9s ease-in, opacity .9s; }
@@ -1199,15 +1215,13 @@
     const gen = S.gen, L = S.line, box = $("xOpts");
     $("xTitle").textContent = `🔀 ${here} is an interchange!`;
     box.innerHTML = "";
-    const add = (html, bg, cls, onPick) => {
-      const b = document.createElement("button");
-      b.className = "x-opt" + (cls ? " " + cls : ""); b.innerHTML = html;
-      if (bg) b.style.background = bg;
-      b.onclick = () => { if (gen !== S.gen) return; $("xchg").hidden = true; sfx.tick(); onPick(); };
-      box.appendChild(b);
+    let letter = 0;
+    const add = (sign, onPick) => {
+      box.appendChild(platformSign({ ...sign, letter: "ABCDEFGH"[letter++],
+        onPick: () => { if (gen !== S.gen) return; $("xchg").hidden = true; sfx.tick(); onPick(); } }));
     };
-    if (canStay) add(`Stay on the ${L.name}<small>towards ${S.dir > 0 ? L.stations.at(-1) : L.stations[0]}</small>`, L.color, "", depart);
-    opts.forEach(o => add(`Change to the ${o.L.name}<small>towards ${o.to}</small>`, o.L.color, "", () => {
+    if (canStay) add({ L, i: S.at, dir: S.dir, kind: "stay" }, depart);
+    opts.forEach(o => add({ L: o.L, i: o.i, dir: o.dir, kind: "change" }, () => {
       S.line = o.L; S.at = S.from = o.i; S.dir = o.dir;
       document.documentElement.style.setProperty("--line", o.L.color);
       $("lineTitle").textContent = o.L.name;
@@ -1215,9 +1229,35 @@
       say(`All change! Now on the ${o.L.name}.`);
       depart();
     }));
-    if (!canStay) add(`🏁 End the ride here`, "", "end", finish);
+    if (!canStay) add({ kind: "end" }, finish);
     $("xchg").hidden = false;
     say(`${here} is an interchange! Which train shall we take?`);
+  }
+
+  // A platform sign button. kind: "dir" (start picker), "stay" or "change" (interchange), or "end".
+  // The strip shows this station and the next stops in the direction of travel.
+  function platformSign({ letter, L, i, dir, kind, onPick }) {
+    const b = document.createElement("button");
+    b.className = "psign" + (kind === "end" ? " end" : "");
+    b.dataset.kind = kind;
+    if (kind === "end") {
+      b.innerHTML = `<span class="top"><span class="plat">🏁</span><span class="txt"><div class="to">This is the last stop</div><div class="dest">End the ride here</div></span></span>`;
+    } else {
+      const st = L.stations, dest = dir > 0 ? st.at(-1) : st[0];
+      const stops = [st[i]];
+      for (let k = 1; k <= 3 && st[i + k * dir]; k++) stops.push(st[i + k * dir]);
+      const verb = kind === "stay" ? "Stay on · " : kind === "change" ? "Change to · " : "";
+      b.dataset.line = L.id; b.dataset.to = dest;
+      b.style.setProperty("--c", L.color);
+      b.innerHTML = `<span class="top"><span class="plat">${letter}</span>
+          <span class="txt"><div class="to">${verb}<span class="lc" style="background:${L.color}">${L.id}</span>${L.name} · towards</div><div class="dest">${dest}</div></span>
+          <span class="arrow" aria-hidden="true">${dir > 0 ? "→" : "←"}</span></span>
+        <span class="strip" aria-hidden="true">${stops.map((_, k) => `<i></i>${k < stops.length - 1 ? "<b></b>" : ""}`).join("")}</span>
+        <span class="names">${stops.map(n => `<span>${n}</span>`).join("")}</span>`;
+      b.setAttribute("aria-label", `Platform ${letter}: ${kind === "stay" ? "stay on" : kind === "change" ? "change to" : ""} the ${L.name} towards ${dest}`);
+    }
+    b.onclick = onPick;
+    return b;
   }
 
   // A surprise on arrival: something to spot and count (1 to 5). No timer; just for fun.
@@ -1374,13 +1414,8 @@
       const row = $("dirRow");
       if (i === 0 || i === st.length - 1) { S.startDir = i === 0 ? 1 : -1; row.hidden = true; setTimeout(closePicker, 450); return; }
       row.innerHTML = "";
-      [[1, st.at(-1)], [-1, st[0]]].forEach(([d, to]) => {
-        const b = document.createElement("button");
-        b.className = "dir-btn"; b.style.background = L.color;
-        b.innerHTML = `<small>Go towards</small>${d > 0 ? "➡️" : "⬅️"} ${to}`;
-        b.onclick = () => { S.startDir = d; sfx.tick(); closePicker(); };
-        row.appendChild(b);
-      });
+      [1, -1].forEach((d, k) => row.appendChild(platformSign({ letter: "AB"[k], L, i, dir: d, kind: "dir",
+        onPick: () => { S.startDir = d; sfx.tick(); closePicker(); } })));
       row.hidden = false;
       say(`${st[i]}. Which way shall we go?`);
     }
