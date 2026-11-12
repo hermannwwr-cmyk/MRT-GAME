@@ -1317,10 +1317,16 @@
         while (ang <= -90) ang += 180;
         ang = Math.max(-60, Math.min(60, ang)); // keep names easy to read
         if (y < 12 && ang < 0) ang = -ang;       // don't run off the top of the map
-        const east = x > 166, r = ang * Math.PI / 180, d = (east ? -1 : 1) * (here ? 3.6 : 1.7); // clear of the red ring // near the east edge, names point back west
+        // Alternate sides of the line (1st station one side, 2nd the other…) so neighbours get twice the room,
+        // but flip a name back if it would run off the edge of the map.
+        const r = ang * Math.PI / 180, len = name.length * 1.15 * Math.cos(r);
+        let side = i % 2 ? -1 : 1;
+        if (side < 0 && x - len < -4) side = 1;
+        if (side > 0 && x + len > 198) side = -1;
+        const d = side * (here ? 3.6 : 1.7); // the chosen station's name sits clear of its red ring
         const tx = x + d * Math.cos(r), ty = y + d * Math.sin(r) + .7;
         const t = add("text", { x: tx, y: ty, "font-size": here ? 2.5 : 2, "font-weight": "bold", fill: here ? "#d42e12" : "#1d2b3a", stroke: "#fff", "stroke-width": here ? .8 : .6,
-          "paint-order": "stroke", class: "pick-label", "data-name": name, "text-anchor": east ? "end" : "start", transform: `rotate(${ang.toFixed(1)} ${x} ${y})` });
+          "paint-order": "stroke", class: "pick-label", "data-name": name, "text-anchor": side > 0 ? "start" : "end", transform: `rotate(${ang.toFixed(1)} ${x} ${y})` });
         t.textContent = name;
         if (o.pick) t.addEventListener("click", () => o.pick(name));
       });
