@@ -328,7 +328,8 @@
 
   .scene {
     --sky1: #bfe3ff; --sky2: #e8f5ff;
-    position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(var(--sky1), var(--sky2) 70%); padding: 64px 10px 0; min-height: 300px;
+    position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(var(--sky1), var(--sky2) 70%); padding: 80px 10px 0; min-height: 300px;
+    perspective: 640px; perspective-origin: 45% -15%; /* the camera stands on the platform, a little above the train */
   }
   /* time of day and weather (set by applyEnv() as data attributes on the scene) */
   .scene[data-time="morning"] { --sky1: #ffd2a8; --sky2: #e3f3ff; }
@@ -437,13 +438,21 @@
     display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 2px;
     border: 3px solid #0d151d;
   }
-  .rail { position: relative; z-index: 1; height: 10px; background: repeating-linear-gradient(90deg, #6b5b4b 0 18px, #8b7b6b 18px 30px); margin-top: 6px; }
-  .platform { position: relative; z-index: 1; background: var(--platform); border-top: 6px solid #f2c94c; min-height: 72px; padding: 8px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: center; }
+  /* The station in 3D. The stage is turned so the platform runs away to the right; the train (with its roof)
+     stands on the far side of the platform edge, and waiting passengers stand at the yellow line, in front of it.
+     Rides slide #carbox out to the right and in from the left. */
+  .stage { --below: 56px; position: relative; z-index: 1; padding-bottom: var(--below); transform-style: preserve-3d; transform: translateZ(-80px) rotateY(26deg); transform-origin: 40% 50%; }
+  .carbox { position: relative; transform-style: preserve-3d; }
+  .carbox .roof { position: absolute; left: calc(50% - min(50%, 280px) - 610px); right: calc(50% - min(50%, 280px) + 64px); top: 0; height: 64px; transform-origin: top; transform: rotateX(-90deg); background: linear-gradient(#eef2f5, #c2cbd3); border-radius: 0 0 8px 8px; }
+  .stage .floor { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below) - 30px); height: 320px; transform-origin: top; transform: translateZ(8px) rotateX(90deg); pointer-events: none;
+    background: linear-gradient(#f2c94c 0 9px, #e3e8ed 9px 12px, transparent 12px), repeating-linear-gradient(90deg, var(--platform) 0 46px, #b4bfca 46px 48px), var(--platform); }
+  /* the track behind the platform edge (seen while the train is away) */
+  .stage .trackbed { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below)); height: 150px; transform-origin: top; transform: rotateX(-90deg); pointer-events: none;
+    background: linear-gradient(transparent 26px, #c3ccd4 26px 29px, transparent 29px 66px, #c3ccd4 66px 69px, transparent 69px), repeating-linear-gradient(90deg, #6e5e4e 0 10px, #8a7a68 10px 26px), #7d6d5c; }
+  .stage .edge { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below) - 30px); height: 30px; transform: translateZ(8px); pointer-events: none; background: linear-gradient(#7d8791, #5b646d); }
+  .platform { position: absolute; left: 0; right: 0; bottom: var(--below); height: 70px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: flex-end; transform: translateY(-30px) translateZ(64px); }
   .platform .note { color: var(--muted); font-size: 15px; }
-  .tunnel {
-    position: absolute; inset: 0; z-index: 3; opacity: 0; pointer-events: none;
-    background: repeating-linear-gradient(90deg, transparent 0 140px, rgba(255,214,102,.55) 140px 150px), #0b1622;
-  }
+  .cab { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
 
   .pax {
     position: relative; font-size: clamp(24px, 6vw, 34px); line-height: 1; padding: 2px; border-radius: 10px;
@@ -514,9 +523,9 @@
   @media (max-height: 700px) {
     #game.screen.active { gap: 8px; padding-block: 10px; }
     .route { height: 46px; }
-    .scene { padding-top: 46px; min-height: 0; }
+    .scene { padding-top: 58px; min-height: 0; }
     .window { min-height: 70px; }
-    .platform { min-height: 54px; }
+    .stage { --below: 44px; }
     .story { font-size: 17px; }
     .equation { font-size: clamp(36px, 11vw, 60px); }
     .ans { font-size: clamp(34px, 10vw, 52px); padding: 6px 0; }
@@ -600,16 +609,23 @@
     <div class="rain" aria-hidden="true"></div>
     <div class="flash" aria-hidden="true"></div>
     <div class="env-pill" id="envPill"></div>
-    <div class="train open" id="train">
-      <div class="door"><i></i><i></i></div>
-      <div class="window" id="carriage"></div>
-      <div class="door"><i></i><i></i></div>
+    <!-- the station in 3D: the train (side, roof, wheels) and the platform floor, seen from along the platform -->
+    <div class="stage" id="stage">
+      <div class="carbox" id="carbox">
+        <i class="roof" aria-hidden="true"></i>
+        <div class="train open" id="train">
+          <div class="door"><i></i><i></i></div>
+          <div class="window" id="carriage"></div>
+          <div class="door"><i></i><i></i></div>
+        </div>
+        <div class="wheels" id="wheels"><i></i><i></i><i></i><i></i></div>
+      </div>
+      <i class="trackbed" aria-hidden="true"></i><i class="edge" aria-hidden="true"></i><i class="floor" aria-hidden="true"></i>
+      <div class="platform" id="platform"></div>
     </div>
-    <div class="wheels" id="wheels"><i></i><i></i><i></i><i></i></div>
-    <div class="rail" id="rail"></div>
-    <div class="platform" id="platform"></div>
     <div class="tally" id="tally"></div>
-    <div class="tunnel" id="tunnel"></div>
+    <!-- between stations: the driver's view out of the front window -->
+    <canvas class="cab" id="cab" aria-hidden="true"></canvas>
   </div>
 
   <p class="story" id="story"></p>
@@ -1083,55 +1099,178 @@
     }, reduceMotion ? 200 : 900);
   }
 
-  // The camera rides with the train: scenery, track and platform scroll past.
-  // The train speeds up, cruises through a tunnel, then slows into the station.
+  // Between stations. The train speeds out of the 3D station to the right, then we ride in the driver's cab
+  // (tunnel or open track, by the two stations), then the train pulls in from the left and stops.
+  // The cab view covers the middle, which is where the next passengers and the next place are swapped in.
   function ride(onMid, onDone) {
-    const scene = $("scene"), W = scene.clientWidth, D = 2 * W + 40;
-    const T = reduceMotion ? 500 : 3400;
-    const from = S.at, n = S.line.stations.length - 1, dir = S.dir, start0 = S.from;
-    const far = $("layerFar"), near = $("layerNear"), rail = $("rail"), plat = $("platform");
-    const train = $("train"), wheels = [...$("wheels").children], tunnel = $("tunnel");
-    const marker = $("routeMarker"), done = $("routeDone");
+    const scene = $("scene"), cab = $("cab"), car = $("carbox"), train = $("train"), wheels = [...$("wheels").children];
+    const T = reduceMotion ? 900 : 4400;
+    const from = S.at, dir = S.dir, next = S.line.stations[from + dir];
+    const view = cabView(cab, scene.dataset.place === "ug", isUnderground(S.line, next), next);
+    const OUT = .17, IN = .83, FADE = .05; // leave 0–OUT, cab view, arrive IN–1
+    const SLIDE = reduceMotion ? 0 : scene.clientWidth * 1.4;
+    const speed = p => p < OUT ? p / OUT : p > IN ? (1 - p) / (1 - IN) : 1; // 0..1
     const ease = p => p < .5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-    const speed = p => (p < .5 ? 12 * p * p : 3 * Math.pow(-2 * p + 2, 2)) / 3; // 0..1
     const sound = rumble(), gen = S.gen;
-    // Tunnel darkness along the way: underground to underground stays dark; going in or coming out
-    // passes a tunnel mouth; above ground to above ground just passes under a bridge at the halfway point
-    // (enough shade to swap the passengers unseen).
-    const fromUG = $("scene").dataset.place === "ug", toUG = isUnderground(S.line, S.line.stations[from + dir]);
-    const dark = p => fromUG && toUG ? Math.min(1, p / .15, (1 - p) / .15)
-      : fromUG ? (p < .55 ? Math.min(1, p / .12) : Math.max(0, 1 - (p - .55) / .15))
-      : toUG ? (p < .3 ? 0 : Math.min(1, (p - .3) / .15, (1 - p) / .12))
-      : Math.max(0, 1 - Math.abs(p - .5) / .07) * .95;
-    let start = null, swapped = false;
+    let start = null, last = 0, dist = 0, swapped = false;
+    const end = () => { sound.stop(); car.style.transform = train.style.transform = ""; cab.style.opacity = 0; };
     function frame(ts) {
-      if (gen !== S.gen) { sound.stop(); plat.style.transform = train.style.transform = ""; tunnel.style.opacity = 0; return; }
-      if (start === null) start = ts;
-      const p = Math.min(1, (ts - start) / T), off = ease(p) * D;
-      far.style.backgroundPositionX = `${-off * 0.2}px`;
-      near.style.backgroundPositionX = `${-off * 0.55}px`;
-      rail.style.backgroundPositionX = `${-off}px`;
-      if (off < W + 20) plat.style.transform = `translateX(${-off}px)`;
-      else {
-        if (!swapped) { swapped = true; onMid(); }
-        plat.style.transform = `translateX(${D - off}px)`;
-      }
-      const spin = (off / 13) * 180 / Math.PI;
+      if (gen !== S.gen) return end();
+      if (start === null) start = last = ts;
+      const p = Math.min(1, (ts - start) / T), v = speed(p);
+      dist += v * (ts - last) / 1000; last = ts;
+      car.style.transform = `translateX(${p < OUT ? SLIDE * (p / OUT) ** 2 : p > IN ? -SLIDE * ((1 - p) / (1 - IN)) ** 2 : SLIDE}px)`;
+      const spin = dist * 900;
       wheels.forEach(w => w.style.transform = `rotate(${spin}deg)`);
-      train.style.transform = reduceMotion ? "" : `translateY(${Math.sin(off / 16) * 1.5 * speed(p)}px)`;
-      tunnel.style.opacity = dark(p) * 0.88;
-      tunnel.style.backgroundPositionX = `${-off * 1.4}px`;
+      train.style.transform = reduceMotion ? "" : `translateY(${Math.sin(dist * 14) * 1.2 * v}px)`;
+      const show = Math.max(0, Math.min(1, (p - OUT + FADE) / FADE, (IN + FADE - p) / FADE));
+      cab.style.opacity = show;
+      if (show > 0) view.draw((p - OUT) / (IN - OUT), dist * 9, v);
+      if (!swapped && p >= .5) { swapped = true; onMid(); }
       placeRoute(from + dir * ease(p));
-      sound.set(speed(p));
+      sound.set(v);
       if (p < 1) requestAnimationFrame(frame);
-      else {
-        if (!swapped) onMid();
-        plat.style.transform = ""; train.style.transform = ""; tunnel.style.opacity = 0;
-        sound.stop();
-        onDone();
-      }
+      else { if (!swapped) onMid(); end(); onDone(); }
     }
     requestAnimationFrame(frame);
+  }
+
+  // The driver's view, drawn on a canvas: rails running to the horizon, sleepers, tunnel rings and lights
+  // underground, or sky, trees, poles and HDB flats outside (with the scene's time and weather), a tunnel
+  // mouth where the line goes in or comes out, the next station's platform near the end, and the cab's
+  // window frame and dashboard. q is 0..1 through the ride, z how far the train has gone, v its speed.
+  function cabView(cv, fromUG, toUG, next) {
+    const scene = $("scene"), W = scene.clientWidth, H = scene.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    const g = cv.getContext("2d");
+    const DASH = 52, VH = H - DASH, vx = W / 2, hz = VH * .46, F = W * .55, CAM = 1.6, LEN = 70, NEAR = .5;
+    const P = (X, Y, z) => [vx + X * F / z, hz + (CAM - Y) * F / z];
+    const lineCol = S.line.color;
+    const poly = (pts, fill) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); };
+    const quad = (X1, X2, Y1, Y2, z1, z2, fill) => poly([P(X1, Y1, z1), P(X2, Y1, z1), P(X2, Y2, z2), P(X1, Y2, z2)], fill);
+    const rnd = k => { const x = Math.sin(k * 127.1) * 43758.5453; return x - Math.floor(x); };
+    let env = "", sky1, sky2, night, wet, ground;
+    function readEnv() {
+      const key = scene.dataset.time + scene.dataset.weather;
+      if (key === env) return;
+      env = key;
+      const cs = getComputedStyle(scene);
+      sky1 = cs.getPropertyValue("--sky1").trim() || "#bfe3ff"; sky2 = cs.getPropertyValue("--sky2").trim() || "#e8f5ff";
+      night = scene.dataset.time === "night"; wet = /rain|storm/.test(scene.dataset.weather);
+      ground = night ? "#26331f" : scene.dataset.time === "evening" ? "#8a9a5a" : wet ? "#6f8f5c" : "#86b765";
+    }
+    // the arch of a tunnel (or tunnel mouth) at depth z
+    function arch(z, more) {
+      const [l, b] = P(-2.6, 0, z), [r] = P(2.6, 0, z), [, w] = P(0, 2.9, z), [, t] = P(0, 4.4, z);
+      if (!more) g.beginPath();
+      g.moveTo(l, b); g.lineTo(l, w); g.quadraticCurveTo(l, t, vx, t); g.quadraticCurveTo(r, t, r, w); g.lineTo(r, b); g.closePath();
+    }
+    function track(z0, bed) {
+      quad(-1.5, 1.5, 0, 0, NEAR, 400, bed);
+      for (let k = Math.ceil(z0); k < z0 + 60; k++) { // sleepers every 1 unit, moving towards us
+        const z = k - z0 + NEAR; if (z < NEAR) continue;
+        quad(-1.05, 1.05, .02, .02, z, z + .25, `rgba(110,90,70,${Math.min(1, 3 / z + .2)})`);
+      }
+      g.strokeStyle = "#c3ccd4"; g.lineWidth = 2.5;
+      [-.72, .72].forEach(X => { const [x1, y1] = P(X, .05, NEAR), [x2, y2] = P(X, .05, 400); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); });
+    }
+    function station(zS, under) { // the next platform, on the left, from zS onwards
+      if (zS > 40) return;
+      const z1 = Math.max(NEAR, zS), z2 = zS + 30;
+      if (under) { poly([P(-7, 0, z2), P(7, 0, z2), P(7, 5, z2), P(-7, 5, z2)], "#fff3cf"); }
+      quad(-7, -1.6, 1.1, 1.1, z1, z2, "#d5dde4");                       // platform top
+      poly([P(-1.6, 0, z1), P(-1.6, 1.1, z1), P(-1.6, 1.1, z2), P(-1.6, 0, z2)], "#7d8791"); // its edge
+      quad(-1.95, -1.6, 1.11, 1.11, z1, z2, "#f2c94c");                  // yellow line
+      quad(-7, 3, 4.6, 4.6, z1, z2, under ? "#e9edf1" : "#dfe5ea");       // roof / ceiling
+      if (zS > 9) poly([P(-7, 4.6, z1), P(3, 4.6, z1), P(3, 4.1, z1), P(-7, 4.1, z1)], lineCol); // its fascia in the line colour
+      for (let k = 0; k < 6; k++) { const z = z1 + 2 + k * 5; if (z < z2) quad(-5.2, -5, 1.1, 4.1, z, z, "#9aa6b2"); } // pillars
+    }
+    function outside(z0, zS) {
+      readEnv();
+      const sg = g.createLinearGradient(0, 0, 0, hz); sg.addColorStop(0, sky1); sg.addColorStop(1, sky2);
+      g.fillStyle = sg; g.fillRect(0, 0, W, hz + 1);
+      if (night) for (let k = 0; k < 24; k++) { g.fillStyle = "rgba(255,255,255,.8)"; g.fillRect(rnd(k) * W, rnd(k + 50) * hz * .8, 1.5, 1.5); }
+      g.fillStyle = ground; g.fillRect(0, hz, W, VH - hz);
+      for (let k = 0; k < 14; k++) { // the city on the horizon
+        const x = rnd(k + 9) * W, w = 14 + rnd(k + 3) * 22, h = 10 + rnd(k + 7) * 30;
+        g.fillStyle = night ? "#2a3550" : "#a9c1d8"; g.fillRect(x, hz - h, w, h);
+      }
+      track(z0, "#8d8478");
+      // things beside the line, drawn far to near: HDB flats, trees, overhead-wire poles
+      const items = [];
+      for (let k = Math.floor(z0 / 12); k < z0 / 12 + 8; k++) items.push(["hdb", k * 12 - z0 + 6, k]);
+      for (let k = Math.floor(z0 / 4); k < z0 / 4 + 16; k++) items.push(["tree", k * 4 - z0 + 2, k]);
+      for (let k = Math.floor(z0 / 6); k < z0 / 6 + 12; k++) items.push(["pole", k * 6 - z0, k]);
+      items.filter(i => i[1] > NEAR + .3).sort((a, b) => b[1] - a[1]).forEach(([kind, z, k]) => {
+        const side = k % 2 ? 1 : -1;
+        if (zS < 40 && side < 0 && z > zS - 2 && kind !== "hdb") return; // the platform is there
+        if (kind === "hdb") {
+          const X = side * (11 + rnd(k) * 4), w = 5, h = 14 + rnd(k + 1) * 12;
+          const [x1, y1] = P(X - w / 2, h, z), [x2, y2] = P(X + w / 2, 0, z);
+          g.fillStyle = night ? "#3b4660" : ["#f3efe6", "#e8eef3", "#f6e7d3"][k % 3]; g.fillRect(x1, y1, x2 - x1, y2 - y1);
+          const cw = (x2 - x1) / 5, ch = (y2 - y1) / 12;
+          g.fillStyle = night ? "#ffd86a" : "#a8c3d9";
+          for (let r = 1; r < 12; r += 1.5) for (let c = .6; c < 4.6; c += 1.4) if (!night || rnd(k * 31 + r * 7 + c) > .45) g.fillRect(x1 + c * cw, y1 + r * ch, cw * .7, ch * .55);
+        } else if (kind === "tree") {
+          const X = side * (4.2 + rnd(k) * 1.5), [tx, ty] = P(X, 0, z), [, top] = P(X, 2.2, z), r = 1.3 * F / z;
+          g.fillStyle = "#6b4f33"; g.fillRect(tx - .12 * F / z, top, .24 * F / z, ty - top);
+          g.fillStyle = night ? "#24402a" : "#4f9d4f"; g.beginPath(); g.arc(tx, top, r, 0, 7); g.fill();
+        } else {
+          [-1, 1].forEach(sd => { const X = sd * 2.3, [x, y] = P(X, 0, z), [, t] = P(X, 4.6, z);
+            g.strokeStyle = "#8a96a2"; g.lineWidth = Math.max(1, .14 * F / z); g.beginPath(); g.moveTo(x, y); g.lineTo(x, t); g.stroke(); });
+          const [a1, a2] = P(-2.3, 4.4, z), [b1] = P(2.3, 4.4, z);
+          g.lineWidth = Math.max(1, .1 * F / z); g.beginPath(); g.moveTo(a1, a2); g.lineTo(b1, a2); g.stroke();
+        }
+      });
+      station(zS, false);
+    }
+    function inside(z0, zS) {
+      g.fillStyle = "#11161b"; g.fillRect(0, 0, W, VH);
+      const lim = Math.min(60, zS);
+      if (zS < 60) { // light from the station ahead
+        const [gx, gy] = P(0, 2, zS), gl = g.createRadialGradient(gx, gy, 2, gx, gy, 6 * F / zS + 30);
+        gl.addColorStop(0, "rgba(255,240,200,.9)"); gl.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = gl; g.fillRect(0, 0, W, VH);
+      }
+      track(z0, "#2b2f33");
+      for (let k = Math.ceil(z0 / 2.5); k < z0 / 2.5 + 30; k++) { // tunnel rings, every 2.5 units
+        const z = k * 2.5 - z0; if (z < NEAR || z > lim) continue;
+        arch(z); g.strokeStyle = `rgba(120,135,150,${Math.min(.9, 2.5 / z + .1)})`; g.lineWidth = Math.max(1, .35 * F / z); g.stroke();
+        if (k % 2) [-2.45, 2.45].forEach(X => { const [x, y] = P(X, 2.2, z); g.fillStyle = "#ffd98a"; g.fillRect(x - .06 * F / z, y, .12 * F / z + 1, .5 * F / z + 1); });
+      }
+      station(zS, true);
+    }
+    function frameAndDash(v, wet) {
+      if (wet) { g.strokeStyle = "rgba(220,235,255,.55)"; g.lineWidth = 1.2; for (let k = 0; k < 40; k++) { const x = Math.random() * W, y = Math.random() * VH; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 3, y + 9 + v * 8); g.stroke(); } }
+      g.fillStyle = "#e9edf1"; g.beginPath(); g.rect(0, 0, W, VH + 2); if (g.roundRect) g.roundRect(12, 8, W - 24, VH - 12, 20); else g.rect(12, 8, W - 24, VH - 12); g.fill("evenodd"); // window frame
+      g.fillStyle = "rgba(255,255,255,.08)"; poly([[34, 10], [90, 10], [44, VH - 6], [16, VH - 6]], "rgba(255,255,255,.08)");
+      const dg = g.createLinearGradient(0, VH, 0, H); dg.addColorStop(0, "#3b4651"); dg.addColorStop(1, "#212931");
+      g.fillStyle = dg; g.fillRect(0, VH, W, DASH);
+      g.fillStyle = lineCol; g.fillRect(0, VH, W, 4);
+      g.fillStyle = "#3ddc5f"; g.beginPath(); g.arc(24, VH + 28, 6, 0, 7); g.fill();
+      const fs = Math.min(17, W / 22); g.font = `800 ${fs}px system-ui, sans-serif`; g.textBaseline = "middle";
+      g.fillStyle = "#9fb3c4"; g.fillText("Next stop", 40, VH + 29);
+      const nx = 46 + g.measureText("Next stop").width;
+      g.fillStyle = "#fff"; g.fillText(next, nx, VH + 29, W - nx - 12);
+    }
+    return {
+      draw(q, z0, v) {
+        q = Math.max(0, Math.min(1, q));
+        const zS = (1 - q) * LEN + 2, zP = (.5 - q) * LEN; // the next station; the tunnel mouth (if the line goes in or out)
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const under = fromUG === toUG ? fromUG : fromUG ? zP > NEAR : zP <= NEAR;
+        if (under) inside(z0, zS); else outside(z0, zS);
+        if (fromUG !== toUG && zP > NEAR && zP < 70) {
+          if (under) { g.save(); arch(zP); g.clip(); outside(z0, 99); g.restore(); } // daylight at the end of the tunnel
+          else { // the tunnel mouth in a wall ahead
+            g.save(); g.beginPath(); g.rect(0, 0, W, VH); arch(zP, true); g.clip("evenodd");
+            quad(-60, 60, 0, 9, zP, zP, "#8b949c"); g.restore();
+            arch(zP); g.fillStyle = "#11161b"; g.fill();
+          }
+        }
+        readEnv();
+        frameAndDash(v, wet && !under);
+      },
+    };
   }
 
   // Put this question's passengers in the train and on the platform.
@@ -1246,7 +1385,8 @@
   // Where an element sits inside the scene, in px.
   function rel(el) {
     const s = $("scene").getBoundingClientRect(), b = el.getBoundingClientRect();
-    return { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, fs: getComputedStyle(el).fontSize };
+    const k = el.offsetWidth ? b.width / el.offsetWidth : 1; // the 3D stage shrinks things further away
+    return { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, fs: parseFloat(getComputedStyle(el).fontSize) * Math.min(1.2, k) + "px" };
   }
   function nearestDoor(r) {
     const mid = o => o.x + o.w / 2;
