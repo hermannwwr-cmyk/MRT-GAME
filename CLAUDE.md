@@ -29,7 +29,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 
 - **Check station data:** `node tests/check-stations.js` checks that every station has a map position, that none overlap, and that no line has a suspicious jump. It takes under a second.
 - Run one Playwright script at a time, because several browsers at once cause false timeouts. Put throwaway scripts and screenshots in a scratch directory, not the repo.
-- When you change gameplay or the DOM, update `tests/play.js` in the same change. Its `play()` helper is the reference loop for driving a ride: it handles interchanges (`#xchg`), surprises (`.sans`, answered by counting `.sitem`) and questions (`#equation`, where the minus sign is `−`, U+2212).
+- When you change gameplay or the DOM, update `tests/play.js` in the same change. Its `play()` helper is the reference loop for driving a ride: it handles interchanges (`#xchg`; each option is a `.psign` platform sign with `data-kind` of stay/change/end, `data-line` and `data-to`), surprises (`.sans`, answered by counting `.sitem`) and questions (`#equation`, where the minus sign is `−`, U+2212).
 - Headless Chromium can't play audio, so the `sound` check counts `OscillatorNode.prototype.start` calls and speech requests instead.
 
 ## Publishing
@@ -49,6 +49,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
   - Bookkeeping: `home` (the home choices saved at start), `gen` and the current question `q`.
 - **Rides:** every ride goes to the end of the line (`S.left` is `Infinity`); the owner chose this over a trip-length setting. Because a ride can change lines, `startGame()` saves the home choices in `S.home`, and `restoreHome()` puts them back for "Ride again", "Choose another line" and 🏠. Reaching the end of a line earns its 🏅 (`mrtBadges`).
 - **Interchanges:** after each answer, `continueTrip()` finishes the ride, departs, or calls `showInterchange()`. That offers "Stay" plus each other line in each direction ("towards <end>"), or "End the ride here" at the end of a line. Changing sets the new `S.line`, `S.at`, `S.dir` and `S.from`, and repaints `--line`.
+- **Platform signs:** every direction choice (start picker and interchanges) is built by `platformSign()`. It looks like an MRT platform sign: a yellow platform letter, the line badge and "towards <end>", an arrow, and a strip of this station plus the next 3 stops in the line colour. Interchange signs say "Stay on" or "Change to"; at the end of a line there's a 🏁 "End the ride here" sign.
 - **Questions:** `makeQuestion()` sets the number ranges (the 10-or-less limit lives here) and makes 3 answer choices, adding distractors near the answer and within 0–10.
 - **Surprises:** `depart()` sets `S.surpriseNow` on about 30% of rides after the first. `arrive()` then runs `surpriseRound()` before the station story: 1–5 birds, balloons, butterflies or cats (`.sitem`) to count with `.sans` buttons, with no timer.
 - **Cancelling:** `S.gen` is a game counter. Timers and rides check it and stop if it has changed, so 🏠 or a restart cancels anything still running. Honour `prefers-reduced-motion` through `reduceMotion`, which shortens the ride and walks and removes the bob.
@@ -63,7 +64,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 
   Bedok South (TE), Sungei Bedok (TE and DT) and Xilin (DT) open on 26 Dec 2026 and need adding then.
 - **`drawMap(svg, options)`** draws the network from `POS`. It's used by:
-  - the start picker `#picker`, opened from the 📍 `#startPick` chip. The map is the only way to pick (there's no list). It's drawn 1300px wide with the line highlighted and every station's name (the `names` option). Names are set at right angles to the line, on alternating sides (flipped back near the map's edges), and are tappable (`.pick-label[data-name]`), and the chosen station is in red. There's a direction choice for mid-line stations.
+  - the start picker `#picker`, opened from the 📍 `#startPick` chip. The map is the only way to pick (there's no list). It's drawn 1300px wide with the line highlighted and every station's name (the `names` option). Names are set at right angles to the line, on alternating sides (flipped back near the map's edges), and are tappable (`.pick-label[data-name]`), and the chosen station is in red. For mid-line stations, the direction choice is two platform signs (A and B).
   - the in-game `#mapView`, opened from 🗺️: the train at `here`, ⭐ on `S.trail`, and labels for line ends and `LANDMARKS`
 
   The SVG is 960px wide inside a scrolling box, and `centreOn()` scrolls to a station.
