@@ -304,11 +304,20 @@
 
   .signrow { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
   .icon-btn.off { opacity: .45; }
+  /* station sign ("Start", "Now at", "Next stop") styled like an MRT platform sign: line badges for every
+     line that stops here (current line first), the station name, and an arrow for the next stop */
   .sign {
-    align-self: center; background: #10253a; color: #fff; border-radius: 12px; padding: 8px 18px;
-    font-size: 20px; display: flex; gap: 10px; align-items: center; border-bottom: 5px solid var(--line);
+    align-self: center; display: flex; gap: 10px; align-items: center; min-width: 0; max-width: 100%;
+    background: linear-gradient(#262e36, #12181e); color: #fff; border-radius: 12px; padding: 7px 12px;
+    box-shadow: 0 4px 0 rgba(0,0,0,.25), inset 0 0 0 2px #3a4651;
   }
-  .sign .lbl { color: #9fb6cc; font-size: 14px; }
+  .sign-lines { display: flex; flex-direction: column; gap: 3px; flex: none; }
+  .sign-lines .lc { color: #fff; font-weight: 800; font-size: 13px; border-radius: 5px; padding: 1px 6px; text-align: center; }
+  .sign-txt { display: flex; flex-direction: column; min-width: 0; }
+  .sign .lbl { color: #b9c4cf; font-size: 11px; letter-spacing: .5px; text-transform: uppercase; line-height: 1.2; }
+  .sign-name { font-size: 21px; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sign-arrow { flex: none; width: 32px; height: 32px; border-radius: 50%; background: #fff; color: #12181e; font-size: 22px; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+  .sign-arrow[hidden] { display: none; }
 
   .scene {
     --sky1: #bfe3ff; --sky2: #e8f5ff;
@@ -332,12 +341,12 @@
   .scene[data-time="evening"] .sky-body { top: 30px; background: #ff7a3d; box-shadow: 0 0 22px 8px rgba(255,122,61,.5); }
   .scene[data-time="night"] .sky-body { background: transparent; box-shadow: inset 9px -4px 0 0 #f4eec4; } /* a crescent moon */
   .scene:not([data-weather="sunny"]) .sky-body { opacity: .25; }
-  .stars { position: absolute; z-index: 0; inset: 0 0 auto; height: 70px; opacity: 0; pointer-events: none;
+  .sky-stars { position: absolute; z-index: 0; inset: 0 0 auto; height: 70px; opacity: 0; pointer-events: none;
     background: radial-gradient(1.5px 1.5px at 20px 14px, #fff 99%, transparent), radial-gradient(1px 1px at 70px 40px, #fff 99%, transparent),
       radial-gradient(1.5px 1.5px at 130px 22px, #fff 99%, transparent), radial-gradient(1px 1px at 170px 52px, #fff 99%, transparent),
       radial-gradient(1.5px 1.5px at 215px 10px, #fff 99%, transparent);
     background-size: 240px 70px; }
-  .scene[data-time="night"]:not([data-weather="rain"]):not([data-weather="storm"]) .stars { opacity: .9; }
+  .scene[data-time="night"]:not([data-weather="rain"]):not([data-weather="storm"]) .sky-stars { opacity: .9; }
   .sky-clouds { position: absolute; z-index: 0; inset: 0 0 auto; height: 70px; opacity: 0; pointer-events: none;
     background: var(--clouds) 0 -6px / 300px 90px repeat-x; animation: skyDrift 50s linear infinite; }
   @keyframes skyDrift { to { background-position-x: 300px; } }
@@ -565,14 +574,18 @@
   <div class="route" id="route"></div>
 
   <div class="signrow">
-    <div class="sign"><span class="lbl" id="signLbl">Now at</span><span id="stationName">Station</span></div>
+    <div class="sign" id="stationSign">
+      <span class="sign-lines" id="signLines"></span>
+      <span class="sign-txt"><span class="lbl" id="signLbl">Now at</span><span class="sign-name" id="stationName">Station</span></span>
+      <span class="sign-arrow" id="signArrow" aria-hidden="true" hidden>→</span>
+    </div>
     <div class="stars" id="starCount">⭐ 0</div>
     <button class="icon-btn" id="mapBtn" aria-label="Show the MRT map">🗺️</button>
   </div>
 
   <div class="scene" id="scene">
     <div class="sky-body" aria-hidden="true"></div>
-    <div class="stars" aria-hidden="true"></div>
+    <div class="sky-stars" aria-hidden="true"></div>
     <div class="sky-clouds" aria-hidden="true"></div>
     <div class="layer far" id="layerFar"></div>
     <div class="layer near" id="layerNear"></div>
@@ -936,6 +949,18 @@
   }
 
   // ---- game ----
+  // The station sign: label ("Start", "Now at", "Next stop"), station name, a badge for every line that
+  // stops there (the current line first), and an arrow pointing the way the train goes for "Next stop".
+  function setSign(label, name) {
+    $("signLbl").textContent = label;
+    $("stationName").textContent = name;
+    const lines = (STOPS[name] || []).map(z => z.L).sort((a, b) => (b === S.line) - (a === S.line));
+    $("signLines").innerHTML = lines.map(L => `<span class="lc" style="background:${L.color}">${L.id}</span>`).join("");
+    const arrow = $("signArrow");
+    arrow.hidden = label !== "Next stop";
+    arrow.textContent = S.dir > 0 ? "→" : "←";
+  }
+
   function startGame() {
     const gen = ++S.gen; // bumping this cancels timers/rides from an earlier game
     S.home = { line: S.line, startIdx: S.startIdx, startDir: S.startDir };
@@ -953,8 +978,7 @@
     $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
     $("starCount").textContent = "⭐ 0";
     renderRoute(S.at);
-    $("signLbl").textContent = "Start";
-    $("stationName").textContent = st[S.at];
+    setSign("Start", st[S.at]);
     $("carriage").innerHTML = "";
     $("platform").innerHTML = `<span class="note">Starting at ${st[S.at]} 🚆</span>`;
     $("train").classList.add("open");
@@ -1017,8 +1041,7 @@
     say(`Doors closing. Next station, ${next}.`);
     setTimeout(() => {
       if (gen !== S.gen) return;
-      $("signLbl").textContent = "Next stop";
-      $("stationName").textContent = next;
+      setSign("Next stop", next);
       stepEnv();
       const place = isUnderground(S.line, next) ? "ug" : "open";
       ride(() => { fillScene(S.q); applyEnv(place); }, arrive);
@@ -1100,7 +1123,7 @@
     const q = S.q, station = S.line.stations[S.at];
     S.trail.add(station);
     renderRoute(S.at);
-    $("signLbl").textContent = "Now at";
+    setSign("Now at", station);
     $("train").classList.add("open");
     sfx.chime();
     S.tries = 0; S.counted = 0; S.busy = true;

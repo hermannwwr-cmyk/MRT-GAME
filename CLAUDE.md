@@ -21,7 +21,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
   | `change` | Start picker (Bishan), changing lines at an interchange (Newton → Downtown Line), returning home |
   | `wrong` | Wrong-answer feedback, no star for a missed question, the in-game map |
   | `storage` | Blocked `localStorage` plus reduced motion |
-  | `screens` | Game screen and map on phones and an iPad |
+  | `screens` | Game screen and map on phones and an iPad; the station sign, ⭐ count and 🗺️ button are all visible |
   | `fit` | The start screen fits on one page, upright and sideways |
   | `signal` | Red → amber → green, GO before green |
   | `lines` | The start train swapping colour, rapid taps |
@@ -54,6 +54,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 - **Cancelling:** `S.gen` is a game counter. Timers and rides check it and stop if it has changed, so 🏠 or a restart cancels anything still running. Honour `prefers-reduced-motion` through `reduceMotion`, which shortens the ride and walks and removes the bob.
 
 ### Ride world: signs, tunnels, sky
+- **Station sign:** `setSign(label, name)` sets the game screen's `#stationSign` ("Start", "Now at" or "Next stop") in the same platform-sign style: a badge for every line that stops there (current line first), the station name, and an arrow showing the direction of travel for "Next stop". Always use `setSign()` rather than writing `#signLbl` or `#stationName` directly.
 - **Platform signs:** every direction choice (start picker and interchanges) is built by `platformSign()`. It looks like an MRT platform sign: a yellow platform letter, the line badge and "towards <end>", an arrow, and a strip of this station plus the next 3 stops in the line colour. Interchange signs say "Stay on" or "Change to"; at the end of a line there's a 🏁 "End the ride here" sign.
 - **Above ground or underground:** `ABOVE` lists the platforms that are above ground (NS Jurong East–Bishan; EW except Lavender–Tiong Bahru); every other platform is underground, and interchanges can differ by line (Bishan NS is outside, Bishan CC is underground). `applyEnv(place)` sets `#scene`'s `data-place` (`ug` shows the `.indoor` platform: ceiling lights, tiles, line-colour band). `ride()` shapes the tunnel darkness from the two stations: dark all the way underground, a tunnel mouth when going in or coming out, a short bridge shadow above ground. The darkest moment is always the middle, where passengers and scenery are swapped.
 - **Time of day and weather:** `S.time` starts from the device clock and moves on every `TIME_EVERY` (6) stations: morning → afternoon → evening → night. `S.weather` is re-rolled every `WEATHER_EVERY` (3–5) stations from `WEATHER` (sunny 40%, cloudy 30%, rain 20%, storm 10%). `stepEnv()` runs in `depart()`, and the change appears at mid-ride via `applyEnv()`. `#scene`'s `data-time`/`data-weather` drive the sky colours, sun or moon, stars, clouds, rain and lightning (rain and lightning never show underground). `#envPill` shows 🚇 underground, otherwise the time and weather icons.
