@@ -2,7 +2,7 @@
 
 A Singapore MRT math game for kids around age 6: single-digit addition and subtraction, with every number 10 or less.
 
-**Play:** open `index.html` in any browser (phone, tablet or computer). No install or internet needed.
+**Play:** open `index.html` in any browser (phone, tablet or computer). No install or internet needed. On a phone or tablet, use **Add to Home Screen** to get an MRT train icon.
 
 **Watch:** [30-second gameplay video](media/mrt-math-express-gameplay.mp4)
 

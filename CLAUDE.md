@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MRT Math Express is a Singapore MRT-themed math game for kids around age 6. It covers single-digit addition and subtraction, and **every number in a question and its answer is 10 or less** (the user asked for Easy difficulty only). `README.md` has the player-facing description and a list of future game ideas.
 
-The whole game is the single file `index.html`, with its HTML, CSS and JS inline. It has no build step and no dependencies, and it must keep working offline when opened directly from `file://`. `media/` holds the README's gameplay video and screenshot, which the game doesn't use.
+The whole game is the single file `index.html`, with its HTML, CSS and JS inline. It has no build step and no dependencies, and it must keep working offline when opened directly from `file://`. `media/` holds the README's gameplay video and screenshot, which the game doesn't use. The Home Screen icon (a train) lives in `icons/`: `icon.svg` is the source drawing, with PNG exports at 180px (`apple-touch-icon`), 192px and 512px, plus a padded `icon-maskable-512.png` for Android. They're linked from `<head>` and `manifest.webmanifest` (short name "MRT Math", `display: browser`, so tapping the icon opens the game in the browser as before). Re-export the PNGs if you change the SVG. The `syntax` check confirms the linked files exist.
 
 ## Commands
 
