@@ -253,6 +253,18 @@ const CHECKS = {
     await p.tap('#goBtn'); await p.waitForSelector('#game.active', { timeout: 3000 });
     ok('signal: tapping the train on green also starts', true);
     ok('signal: no script errors', !p.errs.length, p.errs.join('; '));
+    await p.context().close();
+    // iPhones: while the train pulls in, the hint reminds about silent mode (it mutes the spoken questions)
+    for (const [name, dev] of [['iPhone 13', devices['iPhone 13']], ['iPhone SE', devices['iPhone SE']]]) {
+      const q = await open(b, dev);
+      await q.waitForTimeout(300);
+      const tip = await q.evaluate(() => { const h = document.getElementById('startHint'), c = document.getElementById('startPick');
+        return { text: h.innerText.trim(), oneRow: Math.abs(h.getBoundingClientRect().top - c.getBoundingClientRect().top) < 20 }; });
+      ok(`signal: ${name}: silent-mode tip while red`, /^🔔 Silent (mode )?off!$/.test(tip.text) && tip.oneRow, JSON.stringify(tip));
+      await q.waitForSelector('#signal.green', { timeout: 15000 });
+      ok(`signal: ${name}: "Tap GO" on green`, /GO/.test(await q.textContent('#startHint')));
+      await q.context().close();
+    }
   },
 
   // Picking another line: the train swaps colour; quick taps settle on the last pick.

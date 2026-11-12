@@ -107,6 +107,9 @@
   .signal.nudge { animation: nudge .45s; }
   @keyframes nudge { 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
   .start-hint.wait { color: var(--muted); }
+  /* iPhone/iPad: while the train pulls in, the hint reminds grown-ups that silent mode mutes the narration */
+  .start-hint .tip-short { display: none; }
+  @media (max-width: 360px) { .start-hint .tip-long { display: none; } .start-hint .tip-short { display: inline; } }
   @media (max-height: 700px) {
     .sig-head { gap: 4px; padding: 6px; }
     .lamp-red, .lamp-amber { width: 20px; height: 20px; }
@@ -1641,13 +1644,17 @@
   // Tapping GO (or the train) on green starts the game; tapping earlier nudges "wait for green".
   const startTrain = $("goBtn"), signal = $("signal"), startHint = $("startHint");
   let sigTimer = null, ready = false;
+  // On iPhones and iPads the spoken questions are muted in silent mode (music and sounds still play), and a page
+  // can't tell, so while the signal isn't green the hint says so. iPadOS reports itself as a Mac with touch.
+  const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const WAIT_HINT = IOS ? '<span class="tip-long">🔔 Silent mode off!</span><span class="tip-short">🔔 Silent off!</span>' : "Wait for green…";
   function setSignal(state) {
     clearTimeout(sigTimer);
     ready = state === "green";
     signal.classList.remove("red", "amber", "green", "go");
     signal.classList.add(state);
     startHint.classList.toggle("wait", !ready);
-    startHint.innerHTML = ready ? "Tap <b>GO</b> 👉" : "Wait for green…";
+    startHint.innerHTML = ready ? "Tap <b>GO</b> 👉" : WAIT_HINT;
     if (ready) sfx.ready();
   }
   function pullInStartTrain() {
