@@ -49,7 +49,7 @@ const noSideScroll = p => p.evaluate(() => document.documentElement.scrollWidth 
 
 // Plays until the end screen. choose(labels) returns which interchange button to press.
 async function play(p, choose = () => 0) {
-  const r = { questions: 0, surprises: 0, changes: 0, maxNum: 0, bad: '' };
+  const r = { questions: 0, surprises: 0, changes: 0, maxNum: 0, bad: '', places: [], envs: new Set() };
   for (let guard = 0; guard < 120; guard++) {
     const what = await p.waitForFunction(() => {
       if (document.querySelector('#end.active')) return 'end';
@@ -75,6 +75,9 @@ async function play(p, choose = () => 0) {
       const eq = await p.textContent('#equation');
       const [a, op, b] = eq.replace('−', '-').split(' ');
       const ans = op === '+' ? +a + +b : a - b;
+      const env = await p.$eval('#scene', e => ({ ...e.dataset }));
+      r.places.push([await p.textContent('#stationName'), env.place]);
+      r.envs.add(`${env.time}/${env.weather}`);
       r.maxNum = Math.max(r.maxNum, +a, +b, ans);
       const seated = await p.$$eval('#carriage .pax', x => x.filter(e => e.style.visibility !== 'hidden').length);
       if (seated !== ans) r.bad += ` ${eq} but ${seated} in the train;`;
@@ -108,6 +111,12 @@ const CHECKS = {
     ok('ride: whole NS line, 26 stops', r.questions === 26, JSON.stringify(r));
     ok('ride: passenger count always matches, numbers ≤ 10', !r.bad && r.maxNum <= 10, r.bad);
     ok('ride: ends at Marina South Pier', /Marina South Pier/.test(await p.textContent('#endTitle')));
+    // NS is above ground from Jurong East to Bishan, underground from Braddell on
+    const above = new Set(['Bukit Batok', 'Bukit Gombak', 'Choa Chu Kang', 'Yew Tee', 'Kranji', 'Marsiling', 'Woodlands', 'Admiralty', 'Sembawang', 'Canberra', 'Yishun', 'Khatib', 'Yio Chu Kang', 'Ang Mo Kio', 'Bishan']);
+    const wrongPlace = r.places.filter(([n, pl]) => pl !== (above.has(n) ? 'open' : 'ug'));
+    ok('ride: each station shown above ground or underground correctly', r.places.length === 26 && !wrongPlace.length, JSON.stringify(wrongPlace));
+    const times = new Set([...r.envs].map(e => e.split('/')[0]));
+    ok('ride: time of day moves on during a long ride (every 6 stations)', times.size >= 3, [...r.envs].join(' '));
     await p.tap('#otherBtn'); await p.waitForTimeout(300);
     ok('ride: NS badge earned', (await p.$$eval('.line-btn', bs => bs[0].textContent)).includes('🏅'));
     ok('ride: no script errors', !p.errs.length, p.errs.join('; '));
