@@ -199,6 +199,11 @@ const CHECKS = {
       await p.waitForSelector('#answers .ans', { timeout: 40000 }); await p.waitForTimeout(600);
       const visible = await p.$eval('#answers', el => el.getBoundingClientRect().bottom <= innerHeight + 2);
       ok(`screens: ${name}: game fits sideways, answers visible`, (await noSideScroll(p)) && visible);
+      const chips = await p.evaluate(() => ['#stationSign', '#starCount', '#mapBtn'].map(q => {
+        const e = document.querySelector(q), r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+        return r.width > 20 && r.height > 20 && cs.opacity !== '0' && cs.visibility !== 'hidden' && r.right <= innerWidth + 1;
+      }));
+      ok(`screens: ${name}: station sign, ⭐ count and 🗺️ button all visible`, chips.every(Boolean), JSON.stringify(chips));
       await p.tap('#mapBtn'); await p.waitForTimeout(300);
       ok(`screens: ${name}: map opens, no sideways page scroll`, (await p.isVisible('#mapView')) && (await noSideScroll(p)));
       ok(`screens: ${name}: no script errors`, !p.errs.length, p.errs.join('; '));
