@@ -4,7 +4,7 @@
 //   node tests/play.js            run every check (a few minutes)
 //   node tests/play.js ride fit   run only the named checks
 //
-// Checks: syntax, ride, change, wrong, storage, screens, fit, signal, lines, sound.
+// Checks: syntax, ride, change, wrong, storage, screens, fit, signal, lines, sound, cab.
 // Prints PASS/FAIL lines and exits with code 1 if anything fails.
 // Run one copy at a time: several browsers at once can cause false timeouts.
 const path = require('path');
@@ -318,6 +318,39 @@ const CHECKS = {
     ok('sound: music carries on after the pause', (await state()).osc > before);
     ok('sound: no script errors', !p.errs.length, p.errs.join('; '));
     await b.close();
+  },
+
+  // A ride at normal speed: the train leaves the 3D station, the driver's view shows, the train pulls in.
+  // Bishan → Braddell also goes from above ground into the tunnel.
+  async cab(b) {
+    const p = await open(b, devices['iPhone 13']);
+    await p.waitForSelector('#signal.green', { timeout: 15000 });
+    await p.tap('#startPick'); await p.waitForSelector('#picker:not([hidden])');
+    await p.click('#pickMap .pick-label[data-name="Bishan"]'); await p.waitForSelector('#dirRow:not([hidden])');
+    await p.click('#dirRow .psign >> nth=0'); await p.waitForSelector('#picker', { state: 'hidden' });
+    await go(p);
+    ok('cab: the station is drawn in 3D', await p.$eval('#stage', e => getComputedStyle(e).transformStyle === 'preserve-3d' && getComputedStyle(e).transform !== 'none'));
+    await p.waitForFunction(() => /Doors closing/.test(document.getElementById('story').textContent), null, { timeout: 30000 });
+    const seen = await p.evaluate(() => new Promise(res => {
+      const cab = document.getElementById('cab'), car = document.getElementById('carbox'), out = { max: 0, moved: false, painted: false };
+      const t0 = performance.now();
+      (function look() {
+        const o = +getComputedStyle(cab).opacity;
+        out.max = Math.max(out.max, o);
+        if (/translateX\((?!0px)/.test(car.style.transform)) out.moved = true;
+        if (o > .99 && !out.painted) { // the middle of the canvas isn't blank
+          const g = cab.getContext('2d'), d = g.getImageData(cab.width / 2 - 20, cab.height / 3, 40, 40).data;
+          out.painted = new Set(Array.from({ length: d.length / 4 }, (_, i) => d[i * 4] + ',' + d[i * 4 + 1])).size > 3;
+        }
+        if (performance.now() - t0 < 7000 && document.getElementById('signLbl').textContent !== 'Now at') requestAnimationFrame(look); else res(out);
+      })();
+    }));
+    ok('cab: the train drives off, the driver\'s view shows, and it has a picture', seen.moved && seen.max > .99 && seen.painted, JSON.stringify(seen));
+    await p.waitForTimeout(300);
+    const after = await p.evaluate(() => ({ cab: getComputedStyle(document.getElementById('cab')).opacity, car: document.getElementById('carbox').style.transform, place: document.getElementById('scene').dataset.place, at: document.getElementById('stationName').textContent }));
+    ok('cab: at Braddell the view is back on the (underground) platform, train in place', after.cab === '0' && !after.car && after.place === 'ug' && after.at === 'Braddell', JSON.stringify(after));
+    ok('cab: no script errors', !p.errs.length, p.errs.join('; '));
+    await p.context().close();
   },
 };
 
