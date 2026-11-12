@@ -6,50 +6,88 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MRT Math Express is a Singapore MRT-themed math game for kids around age 6. It covers single-digit addition and subtraction, and **every number in a question and its answer is 10 or less** (the user asked for Easy difficulty only). `README.md` has the player-facing description and a list of future game ideas.
 
-## Running and testing
+The whole game is the single file `index.html`, with its HTML, CSS and JS inline. It has no build step and no dependencies, and it must keep working offline when opened directly from `file://`. `media/` holds the README's gameplay video and screenshot, which the game doesn't use.
 
-The project has no build, dependencies, package manager, linter or test suite. The whole game is the single file `index.html`, with its HTML, CSS and JS inline, and it must keep working offline when opened directly from `file://`.
+## Commands
 
 - **Run:** open `index.html` in a browser.
-- **Check a change:** drive the game headlessly with Playwright, which is pre-installed in the cloud container (`require('playwright')`). Load `file:///…/index.html`, wait for `#signal.green`, then tap `#goSignal` with `{ force: true }`. Then loop until `#end.active`:
-  - **Interchange:** `#xchg` is not hidden. Click a `#xOpts .x-opt` (the first is "Stay" when staying is possible).
-  - **Surprise:** `#answers .sans` buttons appear. Click the one matching the number of `.sitem` elements.
-  - **Question:** `#answers .ans` appears. Read `#equation` (the minus sign is `−`, U+2212) and click the matching `.ans`.
-  
-  Answers are empty while passengers walk and the train rides, which can take up to about 15 s. Listen for `pageerror`. Every ride runs to the end of the line, or further after changing at an interchange: a whole line is 16–34 questions, so use `reducedMotion: 'reduce'` in tests to keep them fast. Run Playwright scripts one at a time: several browsers at once can cause false timeouts. A syntax error blanks the whole page, so extract the `<script>` body and run `node --check` on it after big edits. Save screenshots and test scripts in a scratch directory, not the repo.
-- Test small phones too (Playwright's `iPhone SE` is 320×568). A `max-height: 700px` media query tightens the game screen, and `arrive()` scrolls the answer buttons into view if they're below the fold.
-- `media/` holds the README's gameplay video and screenshot. They aren't used by the game.
-- Headless browsers can't play audio. To check sound, count `OscillatorNode.prototype.start` calls instead.
+- **Test everything:** `node tests/play.js`. It plays the game in headless Chromium with Playwright, which is pre-installed in the cloud container. It prints PASS/FAIL lines, exits with code 1 on any failure, and takes about 10 minutes.
+- **Run some checks:** `node tests/play.js ride fit` runs just the named checks:
+
+  | Check | What it covers |
+  |---|---|
+  | `syntax` | The script compiles. A syntax error blanks the whole page; this takes under a second. |
+  | `ride` | The whole North South Line: passenger counts, numbers ≤ 10, the 🏅 badge |
+  | `change` | Start picker (Bishan), changing lines at an interchange (Newton → Downtown Line), returning home |
+  | `wrong` | Wrong-answer feedback, no star for a missed question, the in-game map |
+  | `storage` | Blocked `localStorage` plus reduced motion |
+  | `screens` | Game screen and map on phones and an iPad |
+  | `fit` | The start screen fits on one page, upright and sideways |
+  | `signal` | Red → amber → green, GO before green |
+  | `lines` | The start train swapping colour, rapid taps |
+  | `sound` | Audio starts only after a real tap |
+
+- **Check station data:** `node tests/check-stations.js` checks that every station has a map position, that none overlap, and that no line has a suspicious jump. It takes under a second.
+- Run one Playwright script at a time, because several browsers at once cause false timeouts. Put throwaway scripts and screenshots in a scratch directory, not the repo.
+- When you change gameplay or the DOM, update `tests/play.js` in the same change. Its `play()` helper is the reference loop for driving a ride: it handles interchanges (`#xchg`), surprises (`.sans`, answered by counting `.sitem`) and questions (`#equation`, where the minus sign is `−`, U+2212).
+- Headless Chromium can't play audio, so the `sound` check counts `OscillatorNode.prototype.start` calls and speech requests instead.
 
 ## Publishing
 
 - `main` is published on GitHub Pages at https://hermannwwr-cmyk.github.io/MRT-GAME/. Every merge to `main` goes live within a minute or two.
-- The owner has asked for pull requests to be merged automatically. After a change passes the Playwright checks, open a PR into `main`, merge it, and confirm the "pages build and deployment" workflow run succeeds. Then start the next change from the latest `main`.
+- The owner has asked for pull requests to be merged automatically. After a change passes the checks, open a PR into `main`, merge it, and confirm the "pages build and deployment" workflow run succeeds. Then start the next change from the latest `main`.
 - `github.io` may be blocked by the container's network. If it is, confirm the deployment through the workflow run.
 
 ## Architecture (inside `index.html`)
 
-- **Three screens:** `<section class="screen">` elements with the ids `home`, `game` and `end`. `show(id)` switches between them.
-- **Start button:** `#goBtn` is a train drawn in CSS, in a `.start-dock` fixed to the bottom of the home screen below the choices. `#home` has bottom padding so the dock never covers them. `pullInStartTrain()` replays its pull-in animation (it brakes, overshoots slightly and settles) whenever the home screen shows. It bobs while it has the `.waiting` class. Picking a different line calls `swapStartTrain()`: the train drives off (`.swapping`), and on `animationend`, `--line` is repainted and a train in the new colour pulls in. Quick repeat taps collapse into one swap to the last line picked. Beside the train, a railway signal (`#signal`) follows it through `setSignal()`: red while it pulls in or swaps, amber as it brakes, then green with a glowing `#goSignal` GO lamp (and `sfx.ready()`) on `animationend`. `go()` handles taps on GO or on the train. On green it adds `.leaving` (drive-off animation plus `sfx.toot()`), and `startGame()` runs about 1 s later. Before green it shakes the signal (`.nudge`) and says "Wait for the green light!" On phones (≤520px wide) the train shows one carriage so the signal fits, and the signal shrinks on short screens. The start screen is laid out to fit on one page with no scrolling: the 6 lines are a 3 × 2 grid, the 3 modes sit in one row, and the choices are centred above the dock. Smaller sizes apply below 600px tall. On a phone held sideways (landscape, ≤500px tall), the dock moves to the right-hand side. `fitDock()` keeps room for the dock, either bottom padding or right padding (sideways), from its real size. It reruns on resize and rotation. In tests, wait for `#signal.green` before tapping. Tap `#goSignal` with `{ force: true }`, because its pulse means it's never "stable". Then wait for `#game.active`.
-- **Start screen scenery:** an elevated MRT station on a sunny day. `show()` sets `body[data-screen]`, and only `body[data-screen="home"]` gets the sky, sun glow and drifting clouds (`body::before`, paused for reduced motion). The `.start-dock` background draws a concrete viaduct deck (`--deck` tall, including the safe-area inset) with HDB flats and trees behind the train. The clouds and HDB tiles are SVGs made in `paintStation()` and set as the CSS variables `--clouds` and `--hdb`. The game and end screens keep the plain background.
-- **Data:** `LINES` holds the 6 lines (`id`, `name`, official line colour) with every open station in route order, 145 stations in all (as of Nov 2026). The Circle Line is stored from Dhoby Ghaut round the loop to Bayfront, so Promenade appears once. Bedok South, Sungei Bedok and Xilin open on 26 Dec 2026 and still need adding. `POS` gives each station a schematic map position (x 0–184 west→east, y 0–100 north→south); interchanges share one position. `STOPS[name]` lists every `{ L, i }` that stops there. The current line colour is applied through the CSS variable `--line` on `:root`.
-- **Trips:** every ride goes to the end of the line (the owner chose this over a trip-length setting; `S.left` is `Infinity`). On the home screen, a start station (`S.startIdx` and `S.startDir`, picked in the `#picker` overlay from `#startPick`; mid-line stations also choose a direction) set up the ride. `startGame()` saves them in `S.home`, and `restoreHome()` puts them back, because a ride can change lines. During a ride the train moves `S.dir` (±1) along `S.line`. `S.from` is where it boarded this line, and `S.trail` is the stations visited.
-- **Interchanges:** after each answer, `continueTrip()` finishes the ride, departs, or (at an interchange) calls `showInterchange()`. That offers "Stay" plus each other line in each direction ("towards <end>"), or "End the ride here" at the end of a line. Changing sets the new `S.line`, `S.at`, `S.dir` and `S.from`, and repaints `--line`.
-- **Surprises:** `depart()` sets `S.surpriseNow` on about 30% of rides after the first. `arrive()` then runs `surpriseRound()` before the station story: 1–5 birds, balloons, butterflies or cats (`.sitem`) to count with `.sans` buttons, with no timer. Found surprises are counted in `S.surprises` and shown on the end screen.
-- **Map:** `drawMap(svg, options)` draws the network from `POS`. It's used by the start picker (one line highlighted, stations tappable) and the in-game `#mapView` (the 🗺️ button, showing the train at `here`, ⭐ on `S.trail`, and labels for line ends and `LANDMARKS`). The SVG is 960px wide inside a scrolling box, and `centreOn()` scrolls to a station.
-- **State:** one object `S` holds the line, mode (`add`, `sub` or `mix`), current stop, stars and current question. `makeQuestion()` sets the number ranges (the 10-or-less limit lives here) and makes 3 answer choices, adding distractors that are near the answer and within 0–10.
-- **Game loop:** `startGame()` (train at the start station) → `depart()` (makes the next question, closes the doors) → `ride()` → `arrive()` (`S.at += S.dir`, opens the doors, maybe a surprise, reads the story, runs `movePassengers()`, then shows the answer buttons and asks) → `answer()` → `continueTrip()`. The route strip (`renderRoute()`) shows the whole current line, with small dots on long lines, shading between `S.from` and the train. A line's 🏅 badge is earned when a ride ends at the end of that line.
-- **Train look:** a generic Singapore-style MRT car with no operator branding: white/silver body, a band of blue-tinted window glass with diagonal reflections (a `repeating-linear-gradient` layer sized to the band), two stripes in the line colour, full-height double doors, and a sloped front with a windscreen. The game train's paint lives in a `--livery` custom property on `.train`, which `.train::before` reuses to draw the next carriage past a gangway gap. The start train (`.st-car`) and the end-screen `.mini-train` use the same scheme.
-- **Ride animation:** in `ride()`, the camera follows the train, so the train stays put and a `requestAnimationFrame` loop moves everything else. An ease-in-out curve drives `background-position` on the scenery layers (`#layerFar` and `#layerNear`, which are SVG tiles made in `paintScenery()`) and `#rail`, a `transform` on `#platform`, wheel rotation, the train's bob, the tunnel overlay's opacity, the route marker and the rumble sound. The next question's passengers are swapped in by `fillScene()` at the midpoint, while the tunnel is darkest and the platform is off-screen.
-- **Passengers walking:** `movePassengers()` moves one passenger at a time, overlapping slightly. `boardOne()` walks someone along the platform to the nearest door, steps them in and pops them into the `#carriage` window. `alightOne()` walks a `.leaving` passenger to a door, down onto the platform and off-screen. A walking copy (`.walker`, animated with the Web Animations API between points measured by `rel()`) does the moving, and `leaveGap()` leaves an invisible copy in place so other passengers don't shift. Passengers move when the train arrives, before the question, so by the time the answers show, the train holds exactly the answer. While people walk, `#tally` counts only how many get on or off (➕ 1, 2, 3), so it doesn't give the answer away. After a right answer it shows the total in green. `say()` returns a promise that resolves when speech ends, so `arrive()` can wait for the story to finish.
-- **Cancelling:** `S.gen` is a game counter. Timers and rides check it and stop if it has changed, so 🏠 or a restart cancels anything still running. Honour `prefers-reduced-motion` through `reduceMotion`, which makes the ride short and removes the bob.
-- **Audio:** everything is made with the Web Audio API; there are no audio files.
-  - `tone()` plays sound effects (in `sfx`).
-  - `music` is an IIFE with a look-ahead note scheduler that plays an original looping tune. `music.duck()` lowers it while `say()` speaks. Keep its notes above about 130 Hz so phone speakers can play them.
-  - `unlockAudio()` runs on real taps (`pointerup`, `touchend`, `click`, `keydown`; not `pointerdown`, which doesn't count as a tap on touch screens). It resumes the AudioContext, plays a silent `<audio>` loop and sets `navigator.audioSession.type = "playback"` so the iPhone silent switch doesn't mute the game, speaks a silent utterance (iOS only allows speech after one during a tap), and starts the music.
-  - `say()` uses `speechSynthesis` to read questions aloud.
-  - Don't copy the real MRT chimes or jingles, which are copyrighted. Keep the sounds original.
-- **Persistence:** the `store` wrapper writes `localStorage` keys `mrtBadges`, `mrtSound` and `mrtMusic`, each in try/catch. The game must still work when storage is unavailable.
+### Screens and flow
+- **Three screens:** `<section class="screen">` elements with the ids `home`, `game` and `end`. `show(id)` switches between them and sets `body[data-screen]`.
+- **Game loop:** `startGame()` (the train at the start station) → `depart()` (makes the next question, closes the doors) → `ride()` → `arrive()` (`S.at += S.dir`, opens the doors, maybe a surprise, reads the story, runs `movePassengers()`, then shows the answer buttons and asks) → `answer()` → `continueTrip()`.
+- **State:** a single object `S`.
+  - Home choices: `line`, `mode` (`add`, `sub` or `mix`), `startIdx` and `startDir`.
+  - The ride: `at`, `dir` (±1), `from` (where the train boarded the current line), `trail` (stations visited), `asked`, `stars` and `surprises`.
+  - Bookkeeping: `home` (the home choices saved at start), `gen` and the current question `q`.
+- **Rides:** every ride goes to the end of the line (`S.left` is `Infinity`); the owner chose this over a trip-length setting. Because a ride can change lines, `startGame()` saves the home choices in `S.home`, and `restoreHome()` puts them back for "Ride again", "Choose another line" and 🏠. Reaching the end of a line earns its 🏅 (`mrtBadges`).
+- **Interchanges:** after each answer, `continueTrip()` finishes the ride, departs, or calls `showInterchange()`. That offers "Stay" plus each other line in each direction ("towards <end>"), or "End the ride here" at the end of a line. Changing sets the new `S.line`, `S.at`, `S.dir` and `S.from`, and repaints `--line`.
+- **Questions:** `makeQuestion()` sets the number ranges (the 10-or-less limit lives here) and makes 3 answer choices, adding distractors near the answer and within 0–10.
+- **Surprises:** `depart()` sets `S.surpriseNow` on about 30% of rides after the first. `arrive()` then runs `surpriseRound()` before the station story: 1–5 birds, balloons, butterflies or cats (`.sitem`) to count with `.sans` buttons, with no timer.
+- **Cancelling:** `S.gen` is a game counter. Timers and rides check it and stop if it has changed, so 🏠 or a restart cancels anything still running. Honour `prefers-reduced-motion` through `reduceMotion`, which shortens the ride and walks and removes the bob.
+
+### Stations and map
+- **Data:** `LINES` holds the 6 lines (`id`, `name`, official line colour) with every open station in route order, 145 stations as of Nov 2026. The Circle Line is stored from Dhoby Ghaut round the loop to Bayfront, so Promenade appears once. The Changi Airport branch isn't included. `STOPS[name]` lists every `{ L, i }` that stops at a station.
+- **Map positions:** `POS` gives each station a schematic position (x 0–184 west→east, y 0–100 north→south). It's hand-placed, not exact geography, and interchanges share one position.
+- **Adding a station:**
+  1. Insert the name in route order in its line's `stations` in `LINES`.
+  2. Add a `POS` entry between its neighbours. If it's an interchange, give it the same position on every line.
+  3. Run `node tests/check-stations.js`.
+
+  Bedok South (TE), Sungei Bedok (TE and DT) and Xilin (DT) open on 26 Dec 2026 and need adding then.
+- **`drawMap(svg, options)`** draws the network from `POS`. It's used by:
+  - the start picker `#picker`, opened from the 📍 `#startPick` chip: one line highlighted, stations tappable, with a direction choice for mid-line stations
+  - the in-game `#mapView`, opened from 🗺️: the train at `here`, ⭐ on `S.trail`, and labels for line ends and `LANDMARKS`
+
+  The SVG is 960px wide inside a scrolling box, and `centreOn()` scrolls to a station.
+
+### Start screen
+- **Layout:** the start screen fits on one page with no scrolling. The 6 lines are a 3 × 2 grid, the 3 modes sit in one row, and the choices are centred above the dock. Smaller sizes apply below 600px tall. On a phone held sideways (landscape, ≤500px tall), the dock moves to the right-hand side. `fitDock()` keeps room for the dock (bottom padding, or right padding sideways) from its real size, and reruns on resize and rotation.
+- **Dock:** `.start-dock` is fixed to the bottom. It holds the 📍 start chip, the hint, the start train `#goBtn` and the railway signal `#signal`. On phones (≤520px wide) the train shows one carriage so the signal fits.
+- **Start train:** `pullInStartTrain()` replays its pull-in animation (it brakes, overshoots slightly and settles) whenever the home screen shows. It bobs while it has `.waiting`. Picking a different line calls `swapStartTrain()`: the train drives off (`.swapping`), then on `animationend` `--line` is repainted and a train in the new colour pulls in. Quick repeat taps collapse into one swap.
+- **Signal:** `setSignal()` shows red while the train moves, amber as it brakes, then green with a glowing `#goSignal` GO lamp (and `sfx.ready()`). `go()` handles taps on GO or on the train. On green it adds `.leaving` (drive-off plus `sfx.toot()`), and `startGame()` runs about 1 s later. Before green it shakes the signal (`.nudge`) and says "Wait for the green light!"
+- **Scenery:** an elevated MRT station on a sunny day. Only `body[data-screen="home"]` gets the sky, sun glow and drifting clouds (`body::before`). The dock background draws a viaduct deck (`--deck`, including the safe-area inset) with HDB flats and trees behind the train. `paintStation()` makes the cloud and HDB SVG tiles (`--clouds`, `--hdb`). The game and end screens keep the plain background.
+
+### Game screen visuals
+- **Train look:** a generic Singapore-style MRT car with no operator branding: white/silver body, a band of blue-tinted window glass with reflections, two stripes in the line colour, full-height double doors, and a sloped front with a windscreen. The game train's paint is the `--livery` custom property on `.train`, which `.train::before` reuses to draw the next carriage past a gangway gap. `.st-car` (start train) and `.mini-train` (end screen) use the same scheme.
+- **Route strip:** `renderRoute()` shows the whole current line, with small dots on long lines and shading between `S.from` and the train.
+- **Ride animation:** in `ride()`, the camera follows the train, so the train stays put and a `requestAnimationFrame` loop moves everything else. An ease-in-out curve drives the scenery layers (`#layerFar`, `#layerNear`, SVG tiles from `paintScenery()`), `#rail`, `#platform`, wheel rotation, the bob, the tunnel overlay, the route marker and the rumble sound. `fillScene()` swaps in the next passengers at the midpoint, while the tunnel is darkest.
+- **Passengers walking:** `movePassengers()` moves one passenger at a time, overlapping slightly. `boardOne()` walks someone to the nearest door and pops them into `#carriage`. `alightOne()` walks a `.leaving` passenger out and off-screen. A `.walker` copy, animated with the Web Animations API between points from `rel()`, does the moving, and `leaveGap()` keeps the others in their seats. Passengers move before the question, so the train then holds exactly the answer. `#tally` counts only how many get on or off (➕ 1, 2, 3), and shows the total in green after a right answer.
+
+### Audio and storage
+- **Audio:** everything is made with the Web Audio API; there are no audio files. Don't copy the real MRT chimes or jingles, which are copyrighted. Keep the sounds original.
+  - `tone()` plays the `sfx` sound effects.
+  - `music` schedules an original looping tune, and `music.duck()` lowers it while `say()` speaks. Keep notes above about 130 Hz so phone speakers can play them.
+  - `say()` uses `speechSynthesis` and returns a promise that resolves when speaking ends.
+  - `unlockAudio()` runs on real taps (`pointerup`, `touchend`, `click`, `keydown`; not `pointerdown`, which doesn't count as a tap on touch screens). It resumes the AudioContext, plays a silent `<audio>` loop and sets `navigator.audioSession.type = "playback"` (so the iPhone silent switch doesn't mute the game), speaks a silent utterance (iOS needs one during a tap), and starts the music.
+- **Persistence:** `store` wraps `localStorage` keys `mrtBadges`, `mrtSound` and `mrtMusic`, each in try/catch. The game must still work when storage is unavailable.
 
 ## Design constraints for the audience
 
