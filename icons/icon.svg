@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1024" height="1024">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fb8ff"/><stop offset="1" stop-color="#d9f1ff"/></linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d4dbe2"/></linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9d5e8"/><stop offset="1" stop-color="#557894"/></linearGradient>
+    <linearGradient id="screen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a9c8de"/><stop offset=".55" stop-color="#2f4c63"/></linearGradient>
+    <clipPath id="trainclip"><path d="M30 196 H360 C430 196 474 232 486 300 V364 H30 Z"/></clipPath>
+  </defs>
+  <!-- sky, sun, clouds -->
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <circle cx="408" cy="104" r="46" fill="#ffd84a"/>
+  <circle cx="408" cy="104" r="64" fill="#ffd84a" opacity=".25"/>
+  <g fill="#fff" opacity=".95"><ellipse cx="120" cy="104" rx="62" ry="22"/><ellipse cx="96" cy="90" rx="34" ry="26"/><ellipse cx="146" cy="84" rx="40" ry="30"/></g>
+  <!-- HDB blocks behind -->
+  <g>
+    <rect x="18" y="128" width="78" height="250" fill="#f6f1e8" stroke="#d9d0c1" stroke-width="3"/><rect x="14" y="120" width="86" height="14" rx="3" fill="#e07a5f"/>
+    <rect x="300" y="160" width="84" height="220" fill="#f6f1e8" stroke="#d9d0c1" stroke-width="3"/><rect x="296" y="152" width="92" height="14" rx="3" fill="#5fa8d3"/>
+    <rect x="410" y="196" width="90" height="190" fill="#f6f1e8" stroke="#d9d0c1" stroke-width="3"/><rect x="406" y="188" width="98" height="14" rx="3" fill="#81b29a"/>
+    <g fill="#c6d8e6"><rect x="28" y="146" width="58" height="8"/><rect x="28" y="166" width="58" height="8"/><rect x="28" y="186" width="58" height="8"/>
+      <rect x="310" y="178" width="64" height="8"/><rect x="420" y="214" width="70" height="8"/></g>
+  </g>
+  <!-- the train (one MRT car, facing right) -->
+  <g clip-path="url(#trainclip)">
+    <rect x="30" y="196" width="460" height="168" fill="url(#body)"/>
+    <rect x="30" y="214" width="460" height="74" fill="url(#glass)"/>
+    <g fill="#fff" opacity=".35"><polygon points="90,214 112,214 84,288 62,288"/><polygon points="200,214 214,214 186,288 172,288"/><polygon points="300,214 322,214 294,288 272,288"/></g>
+    <rect x="30" y="300" width="460" height="18" fill="#d42e12"/>
+    <rect x="30" y="326" width="460" height="7" fill="#d42e12"/>
+    <rect x="30" y="352" width="460" height="12" fill="#8f9ba7"/>
+  </g>
+  <!-- windscreen on the sloped front -->
+  <path d="M392 212 C436 214 466 244 474 292 L474 300 L398 300 Z" fill="url(#screen)"/>
+  <!-- double doors -->
+  <g><rect x="120" y="206" width="56" height="148" rx="4" fill="#e9eef3" stroke="#a7b2bd" stroke-width="3"/><line x1="148" y1="206" x2="148" y2="354" stroke="#a7b2bd" stroke-width="3"/>
+    <rect x="126" y="216" width="16" height="50" rx="3" fill="#557894"/><rect x="154" y="216" width="16" height="50" rx="3" fill="#557894"/></g>
+  <circle cx="470" cy="340" r="8" fill="#fff4b8"/>
+  <!-- wheels, track and viaduct -->
+  <g fill="#333" stroke="#777" stroke-width="7"><circle cx="96" cy="372" r="22"/><circle cx="160" cy="372" r="22"/><circle cx="330" cy="372" r="22"/><circle cx="394" cy="372" r="22"/></g>
+  <g stroke="#aaa" stroke-width="5"><path d="M96 356 V388 M80 372 H112 M160 356 V388 M144 372 H176 M330 356 V388 M314 372 H346 M394 356 V388 M378 372 H410"/></g>
+  <rect x="0" y="392" width="512" height="18" fill="#6b5b4b"/>
+  <g fill="#8b7b6b"><rect x="10" y="392" width="20" height="18"/><rect x="70" y="392" width="20" height="18"/><rect x="130" y="392" width="20" height="18"/><rect x="190" y="392" width="20" height="18"/><rect x="250" y="392" width="20" height="18"/><rect x="310" y="392" width="20" height="18"/><rect x="370" y="392" width="20" height="18"/><rect x="430" y="392" width="20" height="18"/><rect x="490" y="392" width="20" height="18"/></g>
+  <rect x="0" y="410" width="512" height="102" fill="#bdb7ad"/>
+  <rect x="0" y="410" width="512" height="10" fill="#8e887d"/>
+  <g fill="#a8a297"><rect x="60" y="420" width="40" height="92"/><rect x="236" y="420" width="40" height="92"/><rect x="412" y="420" width="40" height="92"/></g>
+</svg>

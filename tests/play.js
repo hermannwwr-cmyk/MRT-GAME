@@ -99,6 +99,12 @@ const CHECKS = {
     const js = html.slice(html.indexOf('<script>') + 8, html.lastIndexOf('</script>'));
     try { new vm.Script(js); ok('syntax: the game script compiles', true); }
     catch (e) { ok('syntax: the game script compiles', false, e.message); }
+    // Home Screen icon files linked from the page must exist
+    const linked = [...html.matchAll(/<link rel="(?:apple-touch-icon|icon|manifest)"[^>]*href="([^"]+)"/g)].map(m => m[1]);
+    const manifest = JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', 'manifest.webmanifest'), 'utf8'));
+    const files = [...linked, ...manifest.icons.map(i => i.src)];
+    const missing = files.filter(f => !fs.existsSync(path.resolve(__dirname, '..', f)));
+    ok('syntax: Home Screen icons and manifest exist', linked.length >= 3 && !missing.length, missing.join(', '));
   },
 
   // Whole North South Line from the first station, mixed sums, staying at every interchange.
