@@ -117,7 +117,7 @@ const CHECKS = {
     const p = await open(b, { reducedMotion: 'reduce' });
     await p.waitForSelector('#signal.green', { timeout: 15000 });
     await p.tap('#startPick'); await p.waitForSelector('#picker:not([hidden])');
-    await p.click('#stChips .st-chip >> text=Bishan');
+    await p.click('#pickMap .pick-label[data-name="Bishan"]');
     await p.waitForSelector('#dirRow:not([hidden])');
     await p.click('#dirRow .dir-btn >> nth=0'); // towards Marina South Pier
     await p.waitForSelector('#picker', { state: 'hidden' });

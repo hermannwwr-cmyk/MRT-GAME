@@ -239,10 +239,11 @@
   .mst.pickable { cursor: pointer; }
   .here-ring { transform-box: fill-box; transform-origin: center; animation: hereRing 1.2s ease-out infinite; }
   @keyframes hereRing { from { transform: scale(.6); opacity: 1; } to { transform: scale(1.8); opacity: 0; } }
-  .st-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; overflow: auto; padding: 2px; }
-  .st-chip { background: #fff; border: 3px solid var(--line); border-radius: 14px; padding: 8px 6px; font-size: 15px; font-weight: bold; line-height: 1.15; }
-  .st-chip.sel { background: var(--line); color: #fff; }
-  .st-chip .i { display: block; font-size: 11px; font-weight: normal; opacity: .8; }
+  /* start picker: the map is the picker, so it fills the card and is drawn larger */
+  #picker .map-scroll { max-height: none; flex: 1; min-height: 0; }
+  #picker .map-scroll svg { width: 1300px; }
+  #picker .ov-card { height: calc(100dvh - 24px); }
+  .pick-label { cursor: pointer; }
   .dir-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .dir-row[hidden] { display: none; }
   .dir-btn, .x-opt {
@@ -530,7 +531,6 @@
     <div class="ov-head"><b id="pickTitle">📍 Where do we start?</b><button class="icon-btn" id="pickClose" aria-label="Close">✕</button></div>
     <div class="map-scroll" id="pickScroll"><svg id="pickMap" aria-label="MRT map"></svg></div>
     <div class="dir-row" id="dirRow" hidden></div>
-    <div class="st-chips" id="stChips"></div>
   </div>
 </div>
 <div class="overlay" id="mapView" hidden>
@@ -1276,7 +1276,10 @@
   const svgNS = "http://www.w3.org/2000/svg";
   function drawMap(svg, o) {
     svg.innerHTML = "";
-    svg.setAttribute("viewBox", "-4 -2 194 102");
+    // with station names (start picker) leave a margin so names near the edges aren't cut off
+    const vb = o.names ? [-6, -4, 206, 116] : [-4, -2, 194, 102];
+    svg.setAttribute("viewBox", vb.join(" "));
+    svg.dataset.vb = vb.join(" ");
     const add = (tag, attrs, parent = svg) => { const e = document.createElementNS(svgNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
     add("path", { d: LAND, fill: "#f4fbef", stroke: "#d3e7cb", "stroke-width": .5 });
     LINES.forEach(L => add("polyline", {
@@ -1302,20 +1305,41 @@
         "text-anchor": right ? "start" : "end", stroke: "#fff", "stroke-width": big ? .9 : .6, "paint-order": "stroke" }).textContent = name;
     };
     (o.labels || []).forEach(n => n !== o.here && label(n, false));
+    // Every station name along one line (start picker). Each name is set at right angles to the line
+    // (like a real MRT map), so neighbouring names stand side by side instead of running into each other.
+    if (o.names) {
+      const st = o.names.stations;
+      st.forEach((name, i) => {
+        const here = name === o.here;
+        const [x, y] = POS[name], a = POS[st[Math.max(0, i - 1)]], b = POS[st[Math.min(st.length - 1, i + 1)]];
+        let ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI - 90; // perpendicular to the line
+        while (ang > 90) ang -= 180;
+        while (ang <= -90) ang += 180;
+        ang = Math.max(-60, Math.min(60, ang)); // keep names easy to read
+        if (y < 12 && ang < 0) ang = -ang;       // don't run off the top of the map
+        const east = x > 166, r = ang * Math.PI / 180, d = (east ? -1 : 1) * (here ? 3.6 : 1.7); // clear of the red ring // near the east edge, names point back west
+        const tx = x + d * Math.cos(r), ty = y + d * Math.sin(r) + .7;
+        const t = add("text", { x: tx, y: ty, "font-size": here ? 2.5 : 2, "font-weight": "bold", fill: here ? "#d42e12" : "#1d2b3a", stroke: "#fff", "stroke-width": here ? .8 : .6,
+          "paint-order": "stroke", class: "pick-label", "data-name": name, "text-anchor": east ? "end" : "start", transform: `rotate(${ang.toFixed(1)} ${x} ${y})` });
+        t.textContent = name;
+        if (o.pick) t.addEventListener("click", () => o.pick(name));
+      });
+    }
     if (o.here) {
       const [x, y] = POS[o.here];
       add("circle", { cx: x, cy: y, r: 3, fill: "none", stroke: "#ff4b3e", "stroke-width": .8, class: "here-ring" });
       add("circle", { cx: x, cy: y, r: 2, fill: "#ff4b3e", stroke: "#fff", "stroke-width": .6 });
-      add("text", { x, y: y - 3, "font-size": 5, "text-anchor": "middle" }).textContent = "🚆";
-      label(o.here, true);
+      if (!o.names) add("text", { x, y: y - 3, "font-size": 5, "text-anchor": "middle" }).textContent = "🚆"; // the picker marks it in red instead
+      if (!o.names) label(o.here, true); // the picker already names it, in red, along the line
     }
   }
   // Scroll a map so a station sits in the middle of the view.
   function centreOn(scroller, svg, name) {
     requestAnimationFrame(() => {
       const [x, y] = POS[name], w = svg.clientWidth, h = svg.clientHeight;
-      scroller.scrollLeft = (x + 4) / 194 * w - scroller.clientWidth / 2;
-      scroller.scrollTop = (y + 2) / 102 * h - scroller.clientHeight / 2;
+      const [vx, vy, vw, vh] = (svg.dataset.vb || "-4 -2 194 102").split(" ").map(Number);
+      scroller.scrollLeft = (x - vx) / vw * w - scroller.clientWidth / 2;
+      scroller.scrollTop = (y - vy) / vh * h - scroller.clientHeight / 2;
     });
   }
   const TERMINI = [...new Set(LINES.flatMap(L => [L.stations[0], L.stations.at(-1)]))];
@@ -1335,21 +1359,10 @@
   function updateStartChip() { $("startPick").textContent = `📍 ${S.line.stations[S.startIdx]}`; }
   function openPicker() {
     const L = S.line, st = L.stations;
-    $("pickTitle").textContent = `📍 Where do we start on the ${L.name}?`;
-    const draw = () => drawMap($("pickMap"), { line: L, dim: true, here: st[S.startIdx], labels: [st[0], st.at(-1)], pick: name => choose(st.indexOf(name)) });
-    const chips = $("stChips");
-    chips.innerHTML = "";
-    st.forEach((name, i) => {
-      const b = document.createElement("button");
-      b.className = "st-chip" + (i === S.startIdx ? " sel" : "");
-      const other = STOPS[name].filter(z => z.L !== L).map(z => z.L.id).join(" ");
-      b.innerHTML = `${name}${other ? `<span class="i">🔀 ${other}</span>` : ""}`;
-      b.onclick = () => choose(i);
-      chips.appendChild(b);
-    });
+    $("pickTitle").textContent = `📍 Tap a station to start on the ${L.name}`;
+    const draw = () => drawMap($("pickMap"), { line: L, dim: true, here: st[S.startIdx], names: L, pick: name => choose(st.indexOf(name)) });
     function choose(i) {
       S.startIdx = i; sfx.tick(); say(st[i]);
-      chips.querySelectorAll(".st-chip").forEach((c, k) => c.classList.toggle("sel", k === i));
       draw(); centreOn($("pickScroll"), $("pickMap"), st[i]);
       updateStartChip();
       const row = $("dirRow");
@@ -1369,7 +1382,6 @@
     draw();
     $("picker").hidden = false;
     centreOn($("pickScroll"), $("pickMap"), st[S.startIdx]);
-    chips.querySelector(".sel")?.scrollIntoView({ block: "nearest" });
   }
   function closePicker() { $("picker").hidden = true; }
 
