@@ -89,7 +89,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
   - `tone()` plays the `sfx` sound effects.
   - `music` schedules an original looping tune, and `music.duck()` lowers it while `say()` speaks. Keep notes above about 130 Hz so phone speakers can play them.
   - `say()` uses `speechSynthesis` and returns a promise that resolves when speaking ends.
-  - `unlockAudio()` runs on real taps (`pointerup`, `touchend`, `click`, `keydown`; not `pointerdown`, which doesn't count as a tap on touch screens). It resumes the AudioContext, plays a silent `<audio>` loop and sets `navigator.audioSession.type = "playback"` (so the iPhone silent switch doesn't mute the game), speaks a silent utterance (iOS needs one during a tap), and starts the music.
+  - `unlockAudio()` runs on real taps (`pointerup`, `touchend`, `click`, `keydown`; not `pointerdown`, which doesn't count as a tap on touch screens). It resumes the AudioContext, plays a silent `<audio>` loop and sets `navigator.audioSession.type = "playback"` (so the iPhone silent switch doesn't mute the game), speaks a silent utterance (iOS needs one during a tap), and starts the music. Its listeners stay on for the whole session, because iPhones and iPads pause sound (AudioContext state `interrupted`) after the screen locks, a call or an app switch. `audio()` resumes from any non-`running` state, a `visibilitychange` handler wakes sound and speech when the page is shown again, and the music scheduler skips notes it missed while paused.
 - **Persistence:** `store` wraps `localStorage` keys `mrtBadges`, `mrtSound` and `mrtMusic`, each in try/catch. The game must still work when storage is unavailable.
 
 ## Design constraints for the audience

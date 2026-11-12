@@ -679,7 +679,7 @@
   let ac;
   function audio() {
     ac = ac || new (window.AudioContext || window.webkitAudioContext)();
-    if (ac.state === "suspended") ac.resume();
+    if (ac.state !== "running") ac.resume().catch(() => {}); // "suspended", or "interrupted" on iPhone/iPad
     return ac;
   }
   function tone(freq, start, dur, type = "sine", vol = 0.18) {
@@ -738,6 +738,7 @@
       o.connect(g).connect(bus); o.start(t); o.stop(t + dur + 0.05);
     }
     function schedule() {
+      if (next < ac.currentTime - 0.2) next = ac.currentTime + 0.05; // sound was paused: pick up from now
       while (next < ac.currentTime + 0.5) {
         const m = MELODY[step], bar = Math.floor(step / 4), beat = step % 4;
         if (m) note(m, next, BEAT * 0.9, "triangle", 0.5);
@@ -814,6 +815,7 @@
     return URL.createObjectURL(new Blob([buf], { type: "audio/wav" }));
   }
   function unlockAudio() {
+    if (ac?.state === "running" && silentEl && !silentEl.paused && speechUnlocked) { music.start(); return; } // all fine already
     try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch {}
     try {
       const c = audio();
@@ -835,7 +837,8 @@
       }
     } catch {}
     music.start();
-    if (ac && ac.state === "running") UNLOCK_EVENTS.forEach(ev => document.removeEventListener(ev, unlockAudio, true));
+    // Listeners stay on: iPhones and iPads pause sound again after the screen locks, a call or an app switch,
+    // and the next tap brings it back.
   }
 
   // ---- scenery art: simple SVG tiles that repeat sideways ----
@@ -1666,6 +1669,13 @@
   // Phones only allow sound after a real tap, so unlock everything on the first few taps.
   const UNLOCK_EVENTS = ["pointerup", "touchend", "click", "keydown"];
   UNLOCK_EVENTS.forEach(ev => document.addEventListener(ev, unlockAudio, true));
+  // Coming back to the game (after switching apps or unlocking the phone): wake the sound up again.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || !ac) return;
+    if (ac.state !== "running") ac.resume().catch(() => {});
+    if (silentEl?.paused) silentEl.play().catch(() => {});
+    try { speechSynthesis.resume(); } catch {} // iOS can leave speech stuck after an interruption
+  });
   syncMusicButtons();
   $("soundBtn").onclick = () => {
     soundOn = !soundOn; store.set("mrtSound", soundOn);
