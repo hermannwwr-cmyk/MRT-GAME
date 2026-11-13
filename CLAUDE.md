@@ -11,7 +11,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 ## Commands
 
 - **Run:** open `index.html` in a browser.
-- **Test everything:** `node tests/play.js`. It plays the game in headless Chromium with Playwright, which is pre-installed in the cloud container. It prints PASS/FAIL lines, exits with code 1 on any failure, and takes about 10 minutes.
+- **Test everything:** `node tests/play.js`. It plays the game in headless Chromium with Playwright, which is pre-installed in the cloud container. It prints PASS/FAIL lines, exits with code 1 on any failure, and takes about 12 minutes (longer than a 10-minute tool timeout, so run it in the background).
 - **Run some checks:** `node tests/play.js ride fit` runs just the named checks:
 
   | Check | What it covers |
@@ -30,6 +30,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 
 - **Check station data:** `node tests/check-stations.js` checks that every station has a map position, that none overlap, and that no line has a suspicious jump. It takes under a second.
 - Run one Playwright script at a time, because several browsers at once cause false timeouts. Put throwaway scripts and screenshots in a scratch directory, not the repo.
+- The time of day starts from the device clock, so screenshots of the scene or cab view change with the hour. To pin it, call `await page.clock.setFixedTime(new Date('2026-11-13T10:00:00'))` before `goto` (it fixes `Date` but keeps timers and animation running).
 - When you change gameplay or the DOM, update `tests/play.js` in the same change. Its `play()` helper is the reference loop for driving a ride: it handles interchanges (`#xchg`; each option is a `.psign` platform sign with `data-kind` of stay/change/end, `data-line` and `data-to`), surprises (`.sans`, answered by counting `.sitem`) and questions (`#equation`, where the minus sign is `−`, U+2212).
 - Headless Chromium can't play audio, so the `sound` check counts `OscillatorNode.prototype.start` calls and speech requests instead. It also can't produce the iPhone/iPad `interrupted` audio state, so a passing `sound` check doesn't prove sound works on a phone. After any change to audio code, ask the owner to try it on their device.
 
