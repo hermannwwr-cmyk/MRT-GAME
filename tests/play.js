@@ -330,7 +330,7 @@ const CHECKS = {
   async bedtime(b) {
     const p = await open(b, { reducedMotion: 'reduce', keepLimit: true });
     await p.waitForTimeout(1200);
-    ok('bedtime: 15 minutes a day by default, shown on the start screen', (await p.textContent('#homeClock')) === '⏱️ 15 min' && await p.isVisible('#homeClock'));
+    ok('bedtime: 20 minutes a day by default, shown on the start screen', (await p.textContent('#homeClock')) === '⏱️ 20 min' && await p.isVisible('#homeClock'));
     await p.evaluate(() => { localStorage.setItem('mrtLimit', '10'); localStorage.setItem('mrtPlay', JSON.stringify({ day: new Date().toDateString(), used: 570, extra: 0 })); });
     await p.reload();
     ok('bedtime: grown-ups button on the start screen', await p.isVisible('#parentBtn'));
