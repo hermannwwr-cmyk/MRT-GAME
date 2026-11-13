@@ -785,7 +785,7 @@
   // reopening the game doesn't reset it, and a new day starts fresh. With storage blocked it lasts for this visit.
   const dayKey = () => new Date().toDateString();
   const playTime = {
-    lim: +store.get("mrtLimit", 15) || 0, // 15 minutes a day unless a grown-up changes it
+    lim: +store.get("mrtLimit", 20) || 0, // 20 minutes a day unless a grown-up changes it
     mem: null,
     limit() { return this.lim; },
     setLimit(m) { this.lim = m; store.set("mrtLimit", m); },
