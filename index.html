@@ -235,6 +235,37 @@
   }
   #home .start-hint { margin: 0; }
 
+  /* play time: the grown-ups' button (start screen, top right), the settings, and the sleeping train */
+  .parent-btn { position: fixed; z-index: 6; top: calc(6px + env(safe-area-inset-top, 0px)); right: calc(6px + env(safe-area-inset-right, 0px)); width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(255,255,255,.7); font-size: 18px; line-height: 1; opacity: .75; }
+  body:not([data-screen="home"]) .parent-btn { display: none; }
+  .gate-card, .parent-card { max-width: 420px; }
+  .gate-q { margin: 0; font-size: 26px; font-weight: 800; text-align: center; }
+  .gate-row { display: flex; gap: 10px; }
+  .gate-row input { flex: 1; min-width: 0; font: inherit; font-size: 28px; text-align: center; border: 3px solid #c9d3dc; border-radius: 14px; padding: 6px; }
+  .gate-row .go { margin: 0; padding: 8px 22px; font-size: 22px; }
+  .gate-msg { margin: 0; min-height: 1.3em; text-align: center; color: var(--bad); }
+  .p-limits { display: flex; flex-wrap: wrap; gap: 8px; }
+  .p-limits .pill { flex: 1 1 28%; }
+  .p-note, .p-today { margin: 0; font-size: 15px; color: var(--muted); }
+  .p-today { color: var(--ink); font-weight: 700; }
+  .p-row { display: grid; gap: 8px; }
+  .end-time { margin: 0; font-size: 14px; color: var(--muted); }
+  .end-time:empty { display: none; }
+  .stops-pill { position: absolute; z-index: 4; top: 8px; right: 8px; background: #1f2a44; color: #ffe9a8; border-radius: 999px; padding: 2px 10px; font-size: 15px; font-weight: 800; line-height: 1.5; box-shadow: 0 2px 0 rgba(0,0,0,.2); pointer-events: none; }
+  .stops-pill[hidden] { display: none; }
+  #gate, #parent { z-index: 50; }
+  .overlay.sleep { z-index: 40; background: linear-gradient(#0c1734, #2a3a63); }
+  .sleep-card { position: relative; max-width: 420px; text-align: center; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .sleep-card h2 { margin: 0; font-size: 30px; }
+  .sleep-card p { margin: 0; font-size: 19px; color: #d6e2f5; }
+  .sleep-btn { margin-top: 24px; border: 2px solid rgba(255,255,255,.45); border-radius: 999px; background: transparent; color: #d6e2f5; font: inherit; font-size: 16px; padding: 8px 18px; }
+  .sleep-moon { width: 70px; height: 70px; border-radius: 50%; box-shadow: inset 18px -8px 0 0 #f4eec4; transform: rotate(-20deg); }
+  .sleep-train { position: relative; width: 240px; margin-bottom: 22px; }
+  .sleep-train .mini-train { animation: none; }
+  .sleep-train i { position: absolute; right: 18px; top: -8px; color: #cfe0ff; font: italic 800 22px system-ui, sans-serif; opacity: 0; animation: zzz 3s ease-out infinite; }
+  .sleep-train i:nth-of-type(2) { animation-delay: 1s; } .sleep-train i:nth-of-type(3) { animation-delay: 2s; font-size: 30px; }
+  @keyframes zzz { 0% { opacity: 0; transform: translate(0, 0); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(26px, -60px); } }
+
   /* overlays: start picker, MRT map, interchange choice */
   .overlay { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(15,25,35,.55); }
   .overlay[hidden] { display: none; }
@@ -341,6 +372,7 @@
   .scene[data-time="night"][data-weather="cloudy"] { --sky1: #141b28; --sky2: #2f3a4d; }
   .scene[data-time="night"][data-weather="rain"], .scene[data-time="night"][data-weather="storm"] { --sky1: #0f141c; --sky2: #27303d; }
   .scene[data-time="night"] .layer { filter: brightness(.42) saturate(.6); }
+  .scene[data-time="night"][data-place="open"] .stage .floor, .scene[data-time="night"][data-place="open"] .stage .trackbed { filter: brightness(.62); }
   .scene[data-time="evening"] .layer { filter: sepia(.25) brightness(.9); }
   .scene[data-weather="rain"] .layer, .scene[data-weather="storm"] .layer { filter: brightness(.78) saturate(.6); }
   .scene[data-time="night"][data-weather="rain"] .layer, .scene[data-time="night"][data-weather="storm"] .layer { filter: brightness(.35) saturate(.5); }
@@ -534,7 +566,8 @@
   @media (prefers-reduced-motion: reduce) {
     body[data-screen="home"]::before { animation: none; }
     .pax, .door i { transition: none; }
-    .walker span, .pax.pop, .tally.bump, .sitem, .here-ring, .sky-clouds, .rain { animation: none; }
+    .walker span, .pax.pop, .tally.bump, .sitem, .here-ring, .sky-clouds, .rain, .sleep-train i { animation: none; }
+    .sleep-train i { opacity: .8; }
     .big-emoji, .confetti, .mini-train, .start-train, .start-train.leaving, .start-train.swapping, .signal.green .lamp-go, .signal.go .lamp-go, .signal.nudge, .st-car, .st-wheels i, .start-hint span { animation: none !important; }
   }
 </style>
@@ -543,6 +576,7 @@
 
 <!-- HOME -->
 <section id="home" class="screen active">
+  <button class="parent-btn" id="parentBtn" aria-label="Grown-ups: play time">⚙️</button>
   <h2>1. Pick your MRT line</h2>
   <div class="lines" id="lineList"></div>
 
@@ -609,6 +643,7 @@
     <div class="rain" aria-hidden="true"></div>
     <div class="flash" aria-hidden="true"></div>
     <div class="env-pill" id="envPill"></div>
+    <div class="stops-pill" id="stopsPill" hidden></div>
     <!-- the station in 3D: the train (side, roof, wheels) and the platform floor, seen from along the platform -->
     <div class="stage" id="stage">
       <div class="carbox" id="carbox">
@@ -645,6 +680,8 @@
   <div class="mini-track" aria-hidden="true"><div class="mini-train"><span></span><span></span><span></span></div></div>
   <button class="go" id="againBtn">Ride again 🔁</button>
   <button class="pill" id="otherBtn">🗺️ Choose another line</button>
+  <button class="go" id="nightBtn" hidden>Good night, train 😴</button>
+  <p class="end-time" id="endTime"></p>
 </section>
 
 <!-- OVERLAYS -->
@@ -667,6 +704,37 @@
     <h3 id="xTitle">🔀 Interchange!</h3>
     <p class="xchg-sub">Which train shall we take?</p>
     <div class="x-opts" id="xOpts"></div>
+  </div>
+</div>
+
+<!-- play time: grown-up check, settings, and the sleeping train when today's time is used up -->
+<div class="overlay" id="gate" hidden>
+  <div class="ov-card gate-card" role="dialog" aria-labelledby="gateTitle">
+    <div class="ov-head"><b id="gateTitle">🔒 Grown-ups only</b><button class="icon-btn" id="gateClose" aria-label="Close">✕</button></div>
+    <p class="gate-q" id="gateQ"></p>
+    <div class="gate-row"><input id="gateIn" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" aria-label="Answer"><button class="go" id="gateOk">OK</button></div>
+    <p class="gate-msg" id="gateMsg"></p>
+  </div>
+</div>
+<div class="overlay" id="parent" hidden>
+  <div class="ov-card parent-card" role="dialog" aria-labelledby="parentTitle">
+    <div class="ov-head"><b id="parentTitle">⏱️ Play time each day</b><button class="icon-btn" id="parentClose" aria-label="Close">✕</button></div>
+    <div class="p-limits" id="limitList">
+      <button class="pill" data-min="0">Off</button><button class="pill" data-min="10">10 min</button><button class="pill" data-min="15">15 min</button>
+      <button class="pill" data-min="20">20 min</button><button class="pill" data-min="30">30 min</button>
+    </div>
+    <p class="p-note">There's no clock on screen: the sky turns from morning to night as time runs out. Near the end the train makes 2 more stops, then goes to sleep until tomorrow.</p>
+    <p class="p-today" id="pToday"></p>
+    <div class="p-row"><button class="pill" id="plusBtn">➕ 5 more minutes today</button><button class="pill" id="resetBtn">🔄 Start today again</button></div>
+  </div>
+</div>
+<div class="overlay sleep" id="sleep" hidden>
+  <div class="sleep-card" role="dialog" aria-labelledby="sleepTitle">
+    <div class="sleep-moon" aria-hidden="true"></div>
+    <div class="sleep-train" aria-hidden="true"><div class="mini-train"><span></span><span></span><span></span></div><i>z</i><i>z</i><i>Z</i></div>
+    <h2 id="sleepTitle">The train is sleeping</h2>
+    <p>Great riding today! Come back tomorrow for more MRT rides.</p>
+    <button class="sleep-btn" id="sleepParent">🔒 Grown-ups</button>
   </div>
 </div>
 
@@ -707,6 +775,21 @@
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
   };
   let badges = store.get("mrtBadges", {});
+  // Play time, set by a grown-up: minutes per day in mrtLimit (0 = no limit) and today's use in mrtPlay
+  // { day, used (seconds), extra (minutes added today) }. It's saved every few seconds, so reloading or
+  // reopening the game doesn't reset it, and a new day starts fresh. With storage blocked it lasts for this visit.
+  const dayKey = () => new Date().toDateString();
+  const playTime = {
+    lim: +store.get("mrtLimit", 0) || 0,
+    mem: null,
+    limit() { return this.lim; },
+    setLimit(m) { this.lim = m; store.set("mrtLimit", m); },
+    rec() { const r = store.get("mrtPlay", null) || this.mem; return r && r.day === dayKey() ? r : { day: dayKey(), used: 0, extra: 0 }; },
+    save(r) { this.mem = r; store.set("mrtPlay", r); },
+    total() { return this.lim ? (this.lim + this.rec().extra) * 60 : Infinity; }, // seconds allowed today
+    left() { return this.total() - this.rec().used; },
+    add(sec) { const r = this.rec(); r.used += sec; this.save(r); },
+  };
   let soundOn = store.get("mrtSound", true);
   let musicOn = store.get("mrtMusic", true);
 
@@ -994,7 +1077,8 @@
     S.left = Infinity; // every ride goes to the end of the line (or on, after changing at an interchange)
     S.asked = 0; S.stars = 0; S.surprises = 0; S.last = "";
     S.trail = new Set([st[S.at]]);
-    S.time = clockTime(); S.weather = rollWeather(); S.weatherLeft = rand(...WEATHER_EVERY); S.envStops = 0;
+    S.time = playTime.limit() ? skyTime() : clockTime(); S.weather = rollWeather();
+    S.lastStops = null; $("stopsPill").hidden = true; S.weatherLeft = rand(...WEATHER_EVERY); S.envStops = 0;
     document.documentElement.style.setProperty("--line", S.line.color);
     applyEnv(isUnderground(S.line, st[S.at]) ? "ug" : "open");
     $("lineTitle").textContent = S.line.name;
@@ -1084,12 +1168,14 @@
     const next = S.line.stations[S.at + S.dir];
     S.surpriseNow = S.asked >= 1 && Math.random() < 0.3; // a surprise on about 1 in 3 rides
     $("tally").classList.remove("show", "done");
-    $("story").innerHTML = `Doors closing… Next station: <b>${next}</b>`;
+    const warn = S.warnNow ? "Two more stops, then the train goes to sleep! " : "";
+    S.warnNow = false;
+    $("story").innerHTML = (warn ? `🌙 <b>2 more stops</b>, then the train goes to sleep!<br>` : "") + `Doors closing… Next station: <b>${next}</b>`;
     $("equation").innerHTML = ""; $("answers").innerHTML = "";
     $("feedback").textContent = ""; $("feedback").className = "feedback";
     $("train").classList.remove("open");
     sfx.doorsClosing();
-    say(`Doors closing. Next station, ${next}.`);
+    say(`${warn}Doors closing. Next station, ${next}.`);
     setTimeout(() => {
       if (gen !== S.gen) return;
       setSign("Next stop", next);
@@ -1492,6 +1578,7 @@
   function continueTrip() {
     S.left--;
     if (S.left <= 0) return finish();
+    if (bedtime()) return finish(true);
     const L = S.line, here = L.stations[S.at];
     const canStay = !!L.stations[S.at + S.dir];
     const opts = [];
@@ -1501,6 +1588,25 @@
     });
     if (!opts.length) return canStay ? depart() : finish();
     showInterchange(here, canStay, opts);
+  }
+
+  // Play time running out: when less than LAST_CALL seconds are left, the train makes 2 more stops
+  // (never stopping mid-question), then goes to sleep. Returns true when it's time to stop now.
+  const LAST_CALL = 60;
+  function bedtime() {
+    if (!playTime.limit()) return false;
+    const pill = $("stopsPill");
+    if (S.lastStops != null) {
+      if (--S.lastStops <= 0) return true;
+      pill.textContent = "🌙 Last stop!"; pill.hidden = false;
+      return false;
+    }
+    if (playTime.left() <= 0 && S.asked > 1) return true;
+    if (playTime.left() <= LAST_CALL) {
+      S.lastStops = 2; S.warnNow = true;
+      pill.textContent = "🌙 2 more stops"; pill.hidden = false;
+    }
+    return false;
   }
 
   function showInterchange(here, canStay, opts) {
@@ -1703,6 +1809,11 @@
     for (const [w, pct] of WEATHER) { if ((r -= pct) < 0) return w; }
     return "sunny";
   }
+  // With a play-time limit, the sky is the clock: morning when play starts, night when it's nearly time to stop.
+  function skyTime() {
+    const f = 1 - Math.max(0, playTime.left()) / playTime.total();
+    return f < .3 ? "morning" : f < .6 ? "afternoon" : f < .85 ? "evening" : "night";
+  }
   function clockTime() { // start the ride at the real time of day
     const h = new Date().getHours();
     return h < 6 ? "night" : h < 11 ? "morning" : h < 17 ? "afternoon" : h < 19 ? "evening" : "night";
@@ -1721,7 +1832,8 @@
   // Called once per ride between stations: moves time and weather on when their turn comes.
   function stepEnv() {
     S.envStops++;
-    if (S.envStops % TIME_EVERY === 0) S.time = TIMES[(TIMES.indexOf(S.time) + 1) % TIMES.length];
+    if (playTime.limit()) S.time = skyTime();
+    else if (S.envStops % TIME_EVERY === 0) S.time = TIMES[(TIMES.indexOf(S.time) + 1) % TIMES.length];
     if (--S.weatherLeft <= 0) { S.weather = rollWeather(); S.weatherLeft = rand(...WEATHER_EVERY); }
   }
 
@@ -1763,9 +1875,23 @@
   }
   function closePicker() { $("picker").hidden = true; }
 
-  function finish() {
+  function finish(sleepy) {
     const total = S.asked;
     const last = S.line.stations[S.at];
+    $("stopsPill").hidden = true;
+    $("againBtn").hidden = $("otherBtn").hidden = !!sleepy;
+    $("nightBtn").hidden = !sleepy;
+    $("endTime").textContent = `⏱️ Played today: ${Math.round(playTime.rec().used / 60)} min`;
+    if (sleepy) { // play time is up: the train goes to the depot to sleep
+      const r = playTime.rec(); r.used = Math.max(r.used, playTime.total()); playTime.save(r); // asleep for the rest of today
+      $("endTitle").textContent = "Time for the train to rest! 😴";
+      $("endText").textContent = `Great riding today! You rode ${total} stop${total > 1 ? "s" : ""} and got ${S.stars} star${S.stars === 1 ? "" : "s"}. The train is going to the depot to sleep. See you tomorrow!`;
+      $("endStars").textContent = "⭐".repeat(S.stars) + "☆".repeat(total - S.stars);
+      show("end");
+      sfx.chime();
+      say(`Great riding today! You got ${S.stars} stars. The train is going to sleep now. See you tomorrow!`);
+      return;
+    }
     if (!S.line.stations[S.at + S.dir]) { // reached the end of a line: earn its badge
       badges[S.line.id] = Math.max(badges[S.line.id] || 0, S.stars);
       store.set("mrtBadges", badges);
@@ -1840,6 +1966,7 @@
   });
   function go() {
     if (startTrain.classList.contains("leaving")) return; // already on its way (double tap)
+    if (playTime.left() <= 0) return showSleep(); // today's play time is used up
     if (!ready) { // not green yet: a friendly nudge instead of starting
       signal.classList.remove("nudge"); void signal.offsetWidth; signal.classList.add("nudge");
       startHint.innerHTML = "Wait for the green light!";
@@ -1872,6 +1999,61 @@
   paintLine();
   pullInStartTrain();
   $("againBtn").onclick = () => { restoreHome(); startGame(); };
+  $("nightBtn").onclick = () => { restoreHome(); renderLines(); show("home"); showSleep(); };
+
+  // ---- play time: counting, the grown-up check, settings and the sleeping train ----
+  // Only time on the game screen counts, and only while the page is showing.
+  let lastTick = Date.now();
+  setInterval(() => {
+    const now = Date.now(), dt = Math.min(10, (now - lastTick) / 1000);
+    lastTick = now;
+    if (document.visibilityState === "visible" && $("game").classList.contains("active")) playTime.add(dt);
+  }, 5000);
+  function showSleep() {
+    try { speechSynthesis.cancel(); } catch {}
+    $("sleep").hidden = false;
+  }
+  // A sum a 6-year-old can't do yet, typed on the number keypad, keeps the settings for grown-ups.
+  let gateAns = 0, gateThen = null;
+  function openGate(then) {
+    const a = rand(6, 9), b = rand(6, 9);
+    gateAns = a * b; gateThen = then;
+    $("gateQ").textContent = `What is ${a} × ${b}?`;
+    $("gateIn").value = ""; $("gateMsg").textContent = "";
+    $("gate").hidden = false;
+    $("gateIn").focus();
+  }
+  function checkGate() {
+    if (+$("gateIn").value === gateAns && $("gateIn").value !== "") { $("gate").hidden = true; gateThen && gateThen(); return; }
+    $("gateMsg").textContent = "Not quite. Please ask a grown-up 🙂";
+    const a = rand(6, 9), b = rand(6, 9);
+    gateAns = a * b; $("gateQ").textContent = `What is ${a} × ${b}?`; $("gateIn").value = "";
+  }
+  $("gateOk").onclick = checkGate;
+  $("gateIn").addEventListener("keydown", e => { if (e.key === "Enter") checkGate(); });
+  $("gateClose").onclick = () => { $("gate").hidden = true; };
+  function openParent() {
+    const lim = playTime.limit(), r = playTime.rec(), used = Math.round(r.used / 60);
+    $("limitList").querySelectorAll("[data-min]").forEach(b => b.classList.toggle("sel", +b.dataset.min === lim));
+    $("pToday").textContent = lim
+      ? `Played today: ${used} min of ${lim + r.extra} min (${Math.max(0, Math.ceil(playTime.left() / 60))} min left)`
+      : `Played today: ${used} min`;
+    $("plusBtn").hidden = $("resetBtn").hidden = !lim;
+    $("parent").hidden = false;
+  }
+  $("limitList").addEventListener("click", e => {
+    const b = e.target.closest("[data-min]");
+    if (b) { playTime.setLimit(+b.dataset.min); openParent(); }
+  });
+  $("plusBtn").onclick = () => { const r = playTime.rec(); r.extra += 5; playTime.save(r); openParent(); };
+  $("resetBtn").onclick = () => { playTime.save({ day: dayKey(), used: 0, extra: 0 }); openParent(); };
+  $("parentClose").onclick = () => {
+    $("parent").hidden = true;
+    if (playTime.left() > 0 && !$("sleep").hidden) { $("sleep").hidden = true; pullInStartTrain(); } // more time: wake the train
+  };
+  $("parentBtn").onclick = () => openGate(openParent);
+  $("sleepParent").onclick = () => openGate(openParent);
+  if (playTime.left() <= 0) showSleep(); // reopened after today's time ran out
   $("otherBtn").onclick = () => { restoreHome(); renderLines(); show("home"); pullInStartTrain(); };
   $("homeBtn").onclick = () => { S.gen++; try { speechSynthesis.cancel(); } catch {} restoreHome(); renderLines(); show("home"); pullInStartTrain(); };
   $("sayBtn").onclick = speakQ;
