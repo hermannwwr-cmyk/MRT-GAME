@@ -26,6 +26,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
   | `signal` | Red → amber → green, GO before green, the iPhone silent-mode hint |
   | `lines` | The start train swapping colour, rapid taps |
   | `sound` | Audio starts only after a real tap; after a mid-game pause, sound comes back and the music carries on |
+  | `bedtime` | Play-time limit: night sky near the end, "2 more stops", the sleeping train, the lock surviving a reload, the grown-up check and +5 minutes |
   | `cab` | At normal speed: the 3D station, the train driving off, the driver's view showing a picture, then back on the platform (Bishan → Braddell, into the tunnel) |
 
 - **Check station data:** `node tests/check-stations.js` checks that every station has a map position, that none overlap, and that no line has a suspicious jump. It takes under a second.
@@ -55,6 +56,13 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
 - **Questions:** `makeQuestion()` sets the number ranges (the 10-or-less limit lives here) and makes 3 answer choices, adding distractors near the answer and within 0–10.
 - **Surprises:** `depart()` sets `S.surpriseNow` on about 30% of rides after the first. `arrive()` then runs `surpriseRound()` before the station story: 1–5 birds, balloons, butterflies or cats (`.sitem`) to count with `.sans` buttons, with no timer.
 - **Cancelling:** `S.gen` is a game counter. Timers and rides check it and stop if it has changed, so 🏠 or a restart cancels anything still running. Honour `prefers-reduced-motion` through `reduceMotion`, which shortens the ride and walks and removes the bob.
+
+### Play time (set by a grown-up)
+- **Setting:** the ⚙️ `#parentBtn` (top right of the start screen) opens `#gate`, a grown-up check (a times-table sum from 6–9 × 6–9, typed on the number keypad), then `#parent`: a daily limit of Off/10/15/20/30 minutes, today's use, "+5 minutes today" and "Start today again". The owner chose a gentle limit with no clock on screen.
+- **Counting:** `playTime` keeps the limit in `mrtLimit` (minutes, 0 = off) and today's use in `mrtPlay` (`{ day, used` seconds`, extra` minutes`}`). A 5-second interval adds time only while `#game` is active and the page is visible, and saves it, so reloading or reopening doesn't reset it; a new `day` starts fresh. With storage blocked it lasts for the visit.
+- **Sky clock:** with a limit set, `skyTime()` replaces the device clock: the time of day follows the share of today's time used (morning → afternoon → evening → night).
+- **Ending:** `continueTrip()` calls `bedtime()`. When `LAST_CALL` (60 s) or less is left, it sets `S.lastStops = 2`, `#stopsPill` shows "🌙 2 more stops" then "🌙 Last stop!", and `depart()` reads the warning first. It never stops mid-question. Then `finish(true)` shows the "Time for the train to rest! 😴" end screen (no "Ride again"; `#nightBtn` instead) and marks today as used up.
+- **Locked:** while `playTime.left() <= 0`, `#sleep` (the sleeping train, above everything except the gate and settings) shows on load and when GO is tapped. Adding time from the settings wakes the train. The end screen's `#endTime` shows "Played today" for grown-ups.
 
 ### Ride world: signs, tunnels, sky
 - **Station sign:** `setSign(label, name)` sets the game screen's `#stationSign` ("Start", "Now at" or "Next stop") in the same platform-sign style: a badge for every line that stops there (current line first), the station name, and an arrow showing the direction of travel for "Next stop". Always use `setSign()` rather than writing `#signLbl` or `#stationName` directly.
@@ -97,7 +105,7 @@ The whole game is the single file `index.html`, with its HTML, CSS and JS inline
   - `music` schedules an original looping tune, and `music.duck()` lowers it while `say()` speaks. Keep notes above about 130 Hz so phone speakers can play them.
   - `say()` uses `speechSynthesis` and returns a promise that resolves when speaking ends.
   - `unlockAudio()` runs on real taps (`pointerup`, `touchend`, `click`, `keydown`; not `pointerdown`, which doesn't count as a tap on touch screens). It resumes the AudioContext, plays a silent `<audio>` loop and sets `navigator.audioSession.type = "playback"` (so the iPhone silent switch doesn't mute the music and sound effects; it still mutes `speechSynthesis`, which no page can prevent, hence the start-screen hint), speaks a silent utterance (iOS needs one during a tap), and starts the music. Its listeners stay on for the whole session, because iPhones and iPads pause sound (AudioContext state `interrupted`) after the screen locks, a call or an app switch. `audio()` resumes from any non-`running` state, a `visibilitychange` handler wakes sound and speech when the page is shown again, and the music scheduler skips notes it missed while paused.
-- **Persistence:** `store` wraps `localStorage` keys `mrtBadges`, `mrtSound` and `mrtMusic`, each in try/catch. The game must still work when storage is unavailable.
+- **Persistence:** `store` wraps `localStorage` keys `mrtBadges`, `mrtSound`, `mrtMusic`, `mrtLimit` and `mrtPlay`, each in try/catch. The game must still work when storage is unavailable.
 
 ## Design constraints for the audience
 

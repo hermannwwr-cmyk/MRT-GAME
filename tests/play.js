@@ -4,7 +4,7 @@
 //   node tests/play.js            run every check (a few minutes)
 //   node tests/play.js ride fit   run only the named checks
 //
-// Checks: syntax, ride, change, wrong, storage, screens, fit, signal, lines, sound, cab.
+// Checks: syntax, ride, change, wrong, storage, screens, fit, signal, lines, sound, cab, bedtime.
 // Prints PASS/FAIL lines and exits with code 1 if anything fails.
 // Run one copy at a time: several browsers at once can cause false timeouts.
 const path = require('path');
@@ -318,6 +318,43 @@ const CHECKS = {
     ok('sound: music carries on after the pause', (await state()).osc > before);
     ok('sound: no script errors', !p.errs.length, p.errs.join('; '));
     await b.close();
+  },
+
+  // Play time: with 30 s left of a 10-minute day, the sky is at night, the train makes 2 more stops after the
+  // next question and goes to sleep; the lock survives a reload; a grown-up can add 5 minutes.
+  async bedtime(b) {
+    const p = await open(b, { reducedMotion: 'reduce' });
+    await p.evaluate(() => { localStorage.setItem('mrtLimit', '10'); localStorage.setItem('mrtPlay', JSON.stringify({ day: new Date().toDateString(), used: 570, extra: 0 })); });
+    await p.reload();
+    ok('bedtime: grown-ups button on the start screen', await p.isVisible('#parentBtn'));
+    await go(p);
+    ok('bedtime: the sky shows night when play time is nearly over', (await p.$eval('#scene', e => e.dataset.time)) === 'night');
+    const seen = new Set();
+    const watch = setInterval(async () => { try { const t = await p.$eval('#stopsPill', e => e.hidden ? '' : e.textContent); if (t) seen.add(t); } catch {} }, 300);
+    const r = await play(p, stay);
+    clearInterval(watch);
+    ok('bedtime: 1 question, then "2 more stops", then the train sleeps', r.questions === 3 && seen.has('🌙 2 more stops') && seen.has('🌙 Last stop!'), JSON.stringify({ q: r.questions, seen: [...seen] }));
+    const end = await p.evaluate(() => ({ title: document.getElementById('endTitle').textContent, night: !document.getElementById('nightBtn').hidden,
+      again: !document.getElementById('againBtn').hidden, time: document.getElementById('endTime').textContent }));
+    ok('bedtime: end screen says the train is resting, with play time for grown-ups', /rest/.test(end.title) && end.night && !end.again && /Played today: \d+ min/.test(end.time), JSON.stringify(end));
+    await p.tap('#nightBtn');
+    ok('bedtime: the sleeping train shows', await p.isVisible('#sleep'));
+    await p.reload(); await p.waitForTimeout(500);
+    ok('bedtime: still sleeping after reopening the game', await p.isVisible('#sleep'));
+    await p.tap('#sleepParent'); await p.waitForSelector('#gate:not([hidden])');
+    await p.fill('#gateIn', '1'); await p.tap('#gateOk');
+    ok('bedtime: a wrong grown-up answer is refused', !(await p.isVisible('#parent')) && /grown-up/.test(await p.textContent('#gateMsg')));
+    const [x, y] = (await p.textContent('#gateQ')).match(/\d+/g).map(Number);
+    await p.fill('#gateIn', String(x * y)); await p.tap('#gateOk');
+    await p.waitForSelector('#parent:not([hidden])');
+    await p.tap('#plusBtn');
+    ok('bedtime: grown-ups can add 5 minutes', /min left/.test(await p.textContent('#pToday')) && !/\(0 min left\)/.test(await p.textContent('#pToday')), await p.textContent('#pToday'));
+    await p.tap('#parentClose');
+    ok('bedtime: with more time the train wakes up', !(await p.isVisible('#sleep')));
+    await go(p);
+    ok('bedtime: and the game starts again', await p.isVisible('#game'));
+    ok('bedtime: no script errors', !p.errs.length, p.errs.join('; '));
+    await p.context().close();
   },
 
   // A ride at normal speed: the train leaves the 3D station, the driver's view shows, the train pulls in.
