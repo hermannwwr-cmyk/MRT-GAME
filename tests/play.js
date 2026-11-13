@@ -333,7 +333,9 @@ const CHECKS = {
     ok('bedtime: 20 minutes a day by default, shown on the start screen', (await p.textContent('#homeClock')) === '⏱️ 20 min' && await p.isVisible('#homeClock'));
     await p.evaluate(() => { localStorage.setItem('mrtLimit', '10'); localStorage.setItem('mrtPlay', JSON.stringify({ day: new Date().toDateString(), used: 570, extra: 0 })); });
     await p.reload();
-    ok('bedtime: grown-ups button on the start screen', await p.isVisible('#parentBtn'));
+    await p.tap('#homeClock'); await p.waitForSelector('#gate:not([hidden])');
+    ok('bedtime: tapping the ⏱️ chip on the start screen asks for a grown-up', true);
+    await p.tap('#gateClose');
     await go(p);
     ok('bedtime: the sky shows night when play time is nearly over', (await p.$eval('#scene', e => e.dataset.time)) === 'night');
     await p.waitForTimeout(1200);
