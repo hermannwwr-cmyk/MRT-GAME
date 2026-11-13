@@ -33,6 +33,8 @@ const SIZES = {
 // ---------- helpers ----------
 async function open(browser, options = {}) {
   const ctx = await browser.newContext({ ...PHONE, ...options });
+  // The game has a 15-minute daily play-time limit by default; checks other than 'bedtime' play without one.
+  if (!options.keepLimit) await ctx.addInitScript(() => { try { if (localStorage.getItem('mrtLimit') === null) localStorage.setItem('mrtLimit', '0'); } catch {} });
   if (options.init) await ctx.addInitScript(options.init);
   const p = await ctx.newPage();
   p.errs = [];
@@ -282,7 +284,7 @@ const CHECKS = {
     ok('lines: quick taps settle on Downtown (blue)', (await colour()) === '#005ec4');
     ok('lines: start chip resets to the new line\'s first station', (await p.textContent('#startPick')).includes('Bukit Panjang'));
     await p.tap('#goSignal', { force: true }); await p.waitForSelector('#game.active');
-    ok('lines: game starts on the Downtown Line', (await p.textContent('#lineTitle')) === 'Downtown Line');
+    ok('lines: game starts on the Downtown Line', (await p.$eval('#signLines', e => e.firstElementChild.textContent)) === 'DT');
     ok('lines: no script errors', !p.errs.length, p.errs.join('; '));
   },
 
@@ -316,6 +318,9 @@ const CHECKS = {
     ok('sound: after a pause, sound comes back (on its own or with the next tap)', back.ac === 'running', JSON.stringify(back));
     const before = (await state()).osc; await p.waitForTimeout(2500);
     ok('sound: music carries on after the pause', (await state()).osc > before);
+    await p.tap('#soundBtn'); await p.waitForTimeout(600);
+    const muted = (await state()).osc; await p.waitForTimeout(2500);
+    ok('sound: one 🔇 button mutes the music too', (await p.textContent('#soundBtn')) === '🔇' && (await state()).osc === muted);
     ok('sound: no script errors', !p.errs.length, p.errs.join('; '));
     await b.close();
   },
@@ -323,12 +328,17 @@ const CHECKS = {
   // Play time: with 30 s left of a 10-minute day, the sky is at night, the train makes 2 more stops after the
   // next question and goes to sleep; the lock survives a reload; a grown-up can add 5 minutes.
   async bedtime(b) {
-    const p = await open(b, { reducedMotion: 'reduce' });
+    const p = await open(b, { reducedMotion: 'reduce', keepLimit: true });
+    await p.waitForTimeout(1200);
+    ok('bedtime: 15 minutes a day by default, shown on the start screen', (await p.textContent('#homeClock')) === '⏱️ 15 min' && await p.isVisible('#homeClock'));
     await p.evaluate(() => { localStorage.setItem('mrtLimit', '10'); localStorage.setItem('mrtPlay', JSON.stringify({ day: new Date().toDateString(), used: 570, extra: 0 })); });
     await p.reload();
     ok('bedtime: grown-ups button on the start screen', await p.isVisible('#parentBtn'));
     await go(p);
     ok('bedtime: the sky shows night when play time is nearly over', (await p.$eval('#scene', e => e.dataset.time)) === 'night');
+    await p.waitForTimeout(1200);
+    const clock = await p.textContent('#clock');
+    ok('bedtime: the ⏱️ clock in the top bar counts down', /^⏱️ 0:[0-5]\d$/.test(clock) && await p.isVisible('#clock'), clock);
     const seen = new Set();
     const watch = setInterval(async () => { try { const t = await p.$eval('#stopsPill', e => e.hidden ? '' : e.textContent); if (t) seen.add(t); } catch {} }, 300);
     const r = await play(p, stay);
