@@ -1143,7 +1143,7 @@
     const scene = $("scene"), W = scene.clientWidth, H = scene.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     const g = cv.getContext("2d");
-    const DASH = 52, VH = H - DASH, vx = W / 2, hz = VH * .46, F = W * .55, CAM = 1.6, LEN = 70, NEAR = .5;
+    const DASH = 52, VH = H - DASH, vx = W / 2, hz = VH * .42, F = W * .55, CAM = 2.4, LEN = 70, NEAR = .5, ELEV = 9;
     const P = (X, Y, z) => [vx + X * F / z, hz + (CAM - Y) * F / z];
     const lineCol = S.line.color;
     const poly = (pts, fill) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); };
@@ -1185,7 +1185,7 @@
       if (zS > 9) poly([P(-7, 4.6, z1), P(3, 4.6, z1), P(3, 4.1, z1), P(-7, 4.1, z1)], lineCol); // its fascia in the line colour
       for (let k = 0; k < 6; k++) { const z = z1 + 2 + k * 5; if (z < z2) quad(-5.2, -5, 1.1, 4.1, z, z, "#9aa6b2"); } // pillars
     }
-    function outside(z0, zS) {
+    function outside(z0, zS, zP = 999) {
       readEnv();
       const sg = g.createLinearGradient(0, 0, 0, hz); sg.addColorStop(0, sky1); sg.addColorStop(1, sky2);
       g.fillStyle = sg; g.fillRect(0, 0, W, hz + 1);
@@ -1195,33 +1195,50 @@
         const x = rnd(k + 9) * W, w = 14 + rnd(k + 3) * 22, h = 10 + rnd(k + 7) * 30;
         g.fillStyle = night ? "#2a3550" : "#a9c1d8"; g.fillRect(x, hz - h, w, h);
       }
-      track(z0, "#8d8478");
-      // things beside the line, drawn far to near: HDB flats, trees, overhead-wire poles
+      // Like the real MRT outside the city centre, the line runs on a viaduct: the ground, roads, trees and the
+      // feet of the HDB flats are ELEV below the track, and the deck (with low concrete walls) hides what's under it.
+      const GY = -ELEV, dash = night ? "#c9c27a" : "#f4f4f4";
+      [-9, 9].forEach(X => { // roads alongside, with lane markings rushing past
+        quad(X - 1.8, X + 1.8, GY, GY, NEAR, 400, night ? "#3a3f45" : "#9a9fa5");
+        for (let k = Math.ceil(z0 / 4); k < z0 / 4 + 25; k++) { const z = k * 4 - z0; if (z > NEAR) quad(X - .07, X + .07, GY, GY, z, z + 1.6, dash); }
+      });
+      if (zP < 400) { // where the line goes underground: a grassy bank with the tunnel mouth in it, which hides what's beyond
+        quad(-80, 80, GY, 6, zP, zP, night ? "#2c3a28" : "#7fa865");
+        g.save(); g.beginPath(); g.rect(0, 0, W, VH); arch(zP, true); g.clip("evenodd");
+        quad(-4.2, 4.2, GY, 6.2, zP, zP, night ? "#6d6a64" : "#b9b3aa"); g.restore(); // concrete face around the mouth
+        arch(zP); g.fillStyle = "#11161b"; g.fill();
+      }
+      // beside the line, drawn far to near: HDB flats and trees down on the ground
       const items = [];
       for (let k = Math.floor(z0 / 12); k < z0 / 12 + 8; k++) items.push(["hdb", k * 12 - z0 + 6, k]);
-      for (let k = Math.floor(z0 / 4); k < z0 / 4 + 16; k++) items.push(["tree", k * 4 - z0 + 2, k]);
-      for (let k = Math.floor(z0 / 6); k < z0 / 6 + 12; k++) items.push(["pole", k * 6 - z0, k]);
-      items.filter(i => i[1] > NEAR + .3).sort((a, b) => b[1] - a[1]).forEach(([kind, z, k]) => {
+      for (let k = Math.floor(z0 / 3); k < z0 / 3 + 22; k++) items.push(["tree", k * 3 - z0 + 1, k]);
+      items.filter(i => i[1] > NEAR + .3 && i[1] < zP).sort((a, b) => b[1] - a[1]).forEach(([kind, z, k]) => {
         const side = k % 2 ? 1 : -1;
-        if (zS < 40 && side < 0 && z > zS - 2 && kind !== "hdb") return; // the platform is there
         if (kind === "hdb") {
-          const X = side * (11 + rnd(k) * 4), w = 5, h = 14 + rnd(k + 1) * 12;
-          const [x1, y1] = P(X - w / 2, h, z), [x2, y2] = P(X + w / 2, 0, z);
+          const X = side * (14 + rnd(k) * 5), w = 6, h = 24 + rnd(k + 1) * 14;
+          const [x1, y1] = P(X - w / 2, GY + h, z), [x2, y2] = P(X + w / 2, GY, z);
           g.fillStyle = night ? "#3b4660" : ["#f3efe6", "#e8eef3", "#f6e7d3"][k % 3]; g.fillRect(x1, y1, x2 - x1, y2 - y1);
-          const cw = (x2 - x1) / 5, ch = (y2 - y1) / 12;
+          const cw = (x2 - x1) / 5, ch = (y2 - y1) / 16;
           g.fillStyle = night ? "#ffd86a" : "#a8c3d9";
-          for (let r = 1; r < 12; r += 1.5) for (let c = .6; c < 4.6; c += 1.4) if (!night || rnd(k * 31 + r * 7 + c) > .45) g.fillRect(x1 + c * cw, y1 + r * ch, cw * .7, ch * .55);
-        } else if (kind === "tree") {
-          const X = side * (4.2 + rnd(k) * 1.5), [tx, ty] = P(X, 0, z), [, top] = P(X, 2.2, z), r = 1.3 * F / z;
-          g.fillStyle = "#6b4f33"; g.fillRect(tx - .12 * F / z, top, .24 * F / z, ty - top);
-          g.fillStyle = night ? "#24402a" : "#4f9d4f"; g.beginPath(); g.arc(tx, top, r, 0, 7); g.fill();
+          for (let r = 1; r < 16; r += 1.5) for (let c = .6; c < 4.6; c += 1.4) if (!night || rnd(k * 31 + r * 7 + c) > .45) g.fillRect(x1 + c * cw, y1 + r * ch, cw * .7, ch * .55);
         } else {
-          [-1, 1].forEach(sd => { const X = sd * 2.3, [x, y] = P(X, 0, z), [, t] = P(X, 4.6, z);
-            g.strokeStyle = "#8a96a2"; g.lineWidth = Math.max(1, .14 * F / z); g.beginPath(); g.moveTo(x, y); g.lineTo(x, t); g.stroke(); });
-          const [a1, a2] = P(-2.3, 4.4, z), [b1] = P(2.3, 4.4, z);
-          g.lineWidth = Math.max(1, .1 * F / z); g.beginPath(); g.moveTo(a1, a2); g.lineTo(b1, a2); g.stroke();
+          const X = side * (k % 3 ? 4.6 + rnd(k) * 2 : 12 + rnd(k) * 2), [tx, ty] = P(X, GY, z), [, top] = P(X, GY + 4, z), r = 1.7 * F / z;
+          g.fillStyle = "#6b4f33"; g.fillRect(tx - .15 * F / z, top, .3 * F / z, ty - top);
+          g.fillStyle = night ? "#24402a" : ["#4f9d4f", "#5cb85c", "#468f46"][k % 3]; g.beginPath(); g.arc(tx, top, r, 0, 7); g.fill();
         }
       });
+      // the viaduct deck, the track on it, and its low side walls
+      const zEnd = Math.min(400, zP); // the deck and its walls stop at a tunnel mouth
+      quad(-2.8, 2.8, 0, 0, NEAR, zEnd, night ? "#5d5a55" : "#b9b3aa");
+      track(z0, "#8d8478");
+      [-2.8, 2.8].forEach(X => {
+        poly([P(X, 0, NEAR), P(X, .6, NEAR), P(X, .6, zEnd), P(X, 0, zEnd)], night ? "#77736c" : "#d6d1c8");
+        quad(X - .12 * Math.sign(X), X + .12 * Math.sign(X), .6, .6, NEAR, zEnd, night ? "#8c8780" : "#ece8e1");
+      });
+      for (let k = Math.ceil(z0 / 5); k < z0 / 5 + 16; k++) { // posts along the walls, so the speed shows
+        const z = k * 5 - z0; if (z < NEAR + .2 || z > zEnd) continue;
+        [-2.8, 2.8].forEach(X => { const [x, y] = P(X, .6, z), [, t] = P(X, 1.3, z); g.strokeStyle = night ? "#8c8780" : "#a39d93"; g.lineWidth = Math.max(1, .12 * F / z); g.beginPath(); g.moveTo(x, y); g.lineTo(x, t); g.stroke(); });
+      }
       station(zS, false);
     }
     function inside(z0, zS) {
@@ -1258,15 +1275,9 @@
         const zS = (1 - q) * LEN + 2, zP = (.5 - q) * LEN; // the next station; the tunnel mouth (if the line goes in or out)
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
         const under = fromUG === toUG ? fromUG : fromUG ? zP > NEAR : zP <= NEAR;
-        if (under) inside(z0, zS); else outside(z0, zS);
-        if (fromUG !== toUG && zP > NEAR && zP < 70) {
-          if (under) { g.save(); arch(zP); g.clip(); outside(z0, 99); g.restore(); } // daylight at the end of the tunnel
-          else { // the tunnel mouth in a wall ahead
-            g.save(); g.beginPath(); g.rect(0, 0, W, VH); arch(zP, true); g.clip("evenodd");
-            quad(-60, 60, 0, 9, zP, zP, "#8b949c"); g.restore();
-            arch(zP); g.fillStyle = "#11161b"; g.fill();
-          }
-        }
+        const mouth = fromUG !== toUG && zP > NEAR && zP < 70;
+        if (under) inside(z0, zS); else outside(z0, zS, mouth ? zP : 999); // outside, the tunnel mouth is drawn in its place
+        if (under && mouth) { g.save(); arch(zP); g.clip(); outside(z0, 99); g.restore(); } // daylight at the end of the tunnel
         readEnv();
         frameAndDash(v, wet && !under);
       },
