@@ -323,7 +323,12 @@
   /* ---------- Game ---------- */
   .topbar { display: flex; align-items: center; gap: 8px; }
   .icon-btn { background: var(--card); border-radius: 14px; width: 48px; height: 48px; font-size: 24px; box-shadow: var(--shadow); flex: none; }
-  .title-chip { flex: 1; background: var(--line); color: #fff; border-radius: 14px; padding: 10px 8px; font-size: 16px; font-weight: bold; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar { justify-content: space-between; }
+  /* play time left today (only with a limit set), counting down while riding */
+  .clock { background: #1f2a44; color: #ffe9a8; border-radius: 14px; padding: 10px 14px; font: 800 20px ui-monospace, Menlo, Consolas, monospace; box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
+  .clock[hidden] { display: none; }
+  .home-clock { position: fixed; z-index: 6; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(48px + env(safe-area-inset-right, 0px)); background: rgba(255,255,255,.85); border-radius: 999px; padding: 4px 10px; font-size: 15px; font-weight: 800; box-shadow: 0 2px 0 rgba(0,0,0,.1); }
+  .home-clock[hidden], body:not([data-screen="home"]) .home-clock { display: none; }
   .stars { font-size: 20px; background: var(--card); border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow); white-space: nowrap; }
 
   /* Route strip: the line's first and last stations named at the two ends, and a close-up "window" of big dots
@@ -577,6 +582,7 @@
 <!-- HOME -->
 <section id="home" class="screen active">
   <button class="parent-btn" id="parentBtn" aria-label="Grown-ups: play time">⚙️</button>
+  <div class="home-clock" id="homeClock" hidden></div>
   <h2>1. Pick your MRT line</h2>
   <div class="lines" id="lineList"></div>
 
@@ -616,9 +622,8 @@
 <section id="game" class="screen">
   <div class="topbar">
     <button class="icon-btn" id="homeBtn" aria-label="Back to start">🏠</button>
-    <div class="title-chip" id="lineTitle">North South Line</div>
-    <button class="icon-btn" id="musicBtn" aria-label="Music on or off">🎵</button>
-    <button class="icon-btn" id="soundBtn" aria-label="Sound on or off">🔊</button>
+    <div class="clock" id="clock" role="timer" aria-label="Play time left" hidden></div>
+    <button class="icon-btn" id="soundBtn" aria-label="Sound on or off (music, voice and sounds)">🔊</button>
   </div>
 
   <div class="route" id="route"></div>
@@ -723,7 +728,7 @@
       <button class="pill" data-min="0">Off</button><button class="pill" data-min="10">10 min</button><button class="pill" data-min="15">15 min</button>
       <button class="pill" data-min="20">20 min</button><button class="pill" data-min="30">30 min</button>
     </div>
-    <p class="p-note">There's no clock on screen: the sky turns from morning to night as time runs out. Near the end the train makes 2 more stops, then goes to sleep until tomorrow.</p>
+    <p class="p-note">A ⏱️ clock counts down while riding, and the sky turns from morning to night. Near the end the train makes 2 more stops, then goes to sleep until tomorrow.</p>
     <p class="p-today" id="pToday"></p>
     <div class="p-row"><button class="pill" id="plusBtn">➕ 5 more minutes today</button><button class="pill" id="resetBtn">🔄 Start today again</button></div>
   </div>
@@ -780,7 +785,7 @@
   // reopening the game doesn't reset it, and a new day starts fresh. With storage blocked it lasts for this visit.
   const dayKey = () => new Date().toDateString();
   const playTime = {
-    lim: +store.get("mrtLimit", 0) || 0,
+    lim: +store.get("mrtLimit", 15) || 0, // 15 minutes a day unless a grown-up changes it
     mem: null,
     limit() { return this.lim; },
     setLimit(m) { this.lim = m; store.set("mrtLimit", m); },
@@ -791,7 +796,6 @@
     add(sec) { const r = this.rec(); r.used += sec; this.save(r); },
   };
   let soundOn = store.get("mrtSound", true);
-  let musicOn = store.get("mrtMusic", true);
 
   // ---- state ----
   const S = {
@@ -874,7 +878,7 @@
     }
     return {
       start() {
-        if (!musicOn || timer) return;
+        if (!soundOn || timer) return;
         try {
           audio();
           if (!bus) { bus = ac.createGain(); bus.connect(ac.destination); }
@@ -897,14 +901,6 @@
       },
     };
   })();
-  function syncMusicButtons() {
-    $("musicBtn").classList.toggle("off", !musicOn);
-  }
-  function toggleMusic() {
-    musicOn = !musicOn; store.set("mrtMusic", musicOn);
-    musicOn ? music.start() : music.stop();
-    syncMusicButtons();
-  }
 
   function say(text) {
     const pause = Math.max(1200, text.length * 55);
@@ -1081,8 +1077,6 @@
     S.lastStops = null; $("stopsPill").hidden = true; S.weatherLeft = rand(...WEATHER_EVERY); S.envStops = 0;
     document.documentElement.style.setProperty("--line", S.line.color);
     applyEnv(isUnderground(S.line, st[S.at]) ? "ug" : "open");
-    $("lineTitle").textContent = S.line.name;
-    $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
     $("starCount").textContent = "⭐ 0";
     setSign("Start", st[S.at]);
     $("carriage").innerHTML = "";
@@ -1622,7 +1616,6 @@
     opts.forEach(o => add({ L: o.L, i: o.i, dir: o.dir, kind: "change" }, () => {
       S.line = o.L; S.at = S.from = o.i; S.dir = o.dir;
       document.documentElement.style.setProperty("--line", o.L.color);
-      $("lineTitle").textContent = o.L.name;
       renderRoute(S.at);
       applyEnv(isUnderground(o.L, here) ? "ug" : "open");
       say(`All change! Now on the ${o.L.name}.`);
@@ -2002,13 +1995,24 @@
   $("nightBtn").onclick = () => { restoreHome(); renderLines(); show("home"); showSleep(); };
 
   // ---- play time: counting, the grown-up check, settings and the sleeping train ----
-  // Only time on the game screen counts, and only while the page is showing.
+  // Only time on the game screen counts, and only while the page is showing. The ⏱️ clock in the
+  // game's top bar counts down every second; the start screen shows the minutes left today.
   let lastTick = Date.now();
+  const mmss = t => { t = Math.max(0, Math.ceil(t)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
+  function showClocks() {
+    const on = !!playTime.limit(), left = playTime.left();
+    $("clock").hidden = $("homeClock").hidden = !on;
+    if (!on) return;
+    $("clock").textContent = `⏱️ ${mmss(left)}`;
+    $("homeClock").textContent = `⏱️ ${Math.max(0, Math.ceil(left / 60))} min`;
+  }
   setInterval(() => {
-    const now = Date.now(), dt = Math.min(10, (now - lastTick) / 1000);
+    const now = Date.now(), dt = Math.min(3, (now - lastTick) / 1000);
     lastTick = now;
     if (document.visibilityState === "visible" && $("game").classList.contains("active")) playTime.add(dt);
-  }, 5000);
+    showClocks();
+  }, 1000);
+  showClocks();
   function showSleep() {
     try { speechSynthesis.cancel(); } catch {}
     $("sleep").hidden = false;
@@ -2040,6 +2044,7 @@
       : `Played today: ${used} min`;
     $("plusBtn").hidden = $("resetBtn").hidden = !lim;
     $("parent").hidden = false;
+    showClocks();
   }
   $("limitList").addEventListener("click", e => {
     const b = e.target.closest("[data-min]");
@@ -2064,7 +2069,6 @@
   // tapping the dark backdrop closes the picker or the map (not the interchange question)
   ["picker", "mapView"].forEach(id => $(id).addEventListener("click", e => { if (e.target.id === id) $(id).hidden = true; }));
   updateStartChip();
-  $("musicBtn").onclick = toggleMusic;
   // Browsers only allow sound after the first tap, so start the music then.
   // Phones only allow sound after a real tap, so unlock everything on the first few taps.
   const UNLOCK_EVENTS = ["pointerup", "touchend", "click", "keydown"];
@@ -2076,11 +2080,14 @@
     if (silentEl?.paused) silentEl.play().catch(() => {});
     try { speechSynthesis.resume(); } catch {} // iOS can leave speech stuck after an interruption
   });
-  syncMusicButtons();
+  // One switch for everything: music, the voice and sound effects.
+  function syncSoundBtn() { $("soundBtn").textContent = soundOn ? "🔊" : "🔇"; $("soundBtn").classList.toggle("off", !soundOn); }
+  syncSoundBtn();
   $("soundBtn").onclick = () => {
     soundOn = !soundOn; store.set("mrtSound", soundOn);
-    $("soundBtn").textContent = soundOn ? "🔊" : "🔇";
-    if (!soundOn) try { speechSynthesis.cancel(); } catch {}
+    syncSoundBtn();
+    if (soundOn) music.start();
+    else { music.stop(); try { speechSynthesis.cancel(); } catch {} }
   };
 
   renderLines();
