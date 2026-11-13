@@ -236,8 +236,6 @@
   #home .start-hint { margin: 0; }
 
   /* play time: the grown-ups' button (start screen, top right), the settings, and the sleeping train */
-  .parent-btn { position: fixed; z-index: 6; top: calc(6px + env(safe-area-inset-top, 0px)); right: calc(6px + env(safe-area-inset-right, 0px)); width: 36px; height: 36px; border: 0; border-radius: 50%; background: rgba(255,255,255,.7); font-size: 18px; line-height: 1; opacity: .75; }
-  body:not([data-screen="home"]) .parent-btn { display: none; }
   .gate-card, .parent-card { max-width: 420px; }
   .gate-q { margin: 0; font-size: 26px; font-weight: 800; text-align: center; }
   .gate-row { display: flex; gap: 10px; }
@@ -327,8 +325,9 @@
   /* play time left today (only with a limit set), counting down while riding */
   .clock { background: #1f2a44; color: #ffe9a8; border-radius: 14px; padding: 10px 14px; font: 800 20px ui-monospace, Menlo, Consolas, monospace; box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
   .clock[hidden] { display: none; }
-  .home-clock { position: fixed; z-index: 6; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(48px + env(safe-area-inset-right, 0px)); background: rgba(255,255,255,.85); border-radius: 999px; padding: 4px 10px; font-size: 15px; font-weight: 800; box-shadow: 0 2px 0 rgba(0,0,0,.1); }
-  .home-clock[hidden], body:not([data-screen="home"]) .home-clock { display: none; }
+  /* start screen, top right: today's play time left; tapping it opens the grown-ups' settings */
+  .home-clock { position: fixed; z-index: 6; top: calc(8px + env(safe-area-inset-top, 0px)); right: calc(8px + env(safe-area-inset-right, 0px)); border: 0; background: rgba(255,255,255,.85); color: var(--ink); border-radius: 999px; padding: 5px 12px; font: inherit; font-size: 15px; font-weight: 800; box-shadow: 0 2px 0 rgba(0,0,0,.1); }
+  body:not([data-screen="home"]) .home-clock { display: none; }
   .stars { font-size: 20px; background: var(--card); border-radius: 14px; padding: 10px 12px; box-shadow: var(--shadow); white-space: nowrap; }
 
   /* Route strip: the line's first and last stations named at the two ends, and a close-up "window" of big dots
@@ -581,8 +580,7 @@
 
 <!-- HOME -->
 <section id="home" class="screen active">
-  <button class="parent-btn" id="parentBtn" aria-label="Grown-ups: play time">⚙️</button>
-  <div class="home-clock" id="homeClock" hidden></div>
+  <button class="home-clock" id="homeClock" aria-label="Play time left today (grown-ups: tap to change)">⏱️</button>
   <h2>1. Pick your MRT line</h2>
   <div class="lines" id="lineList"></div>
 
@@ -2001,8 +1999,8 @@
   const mmss = t => { t = Math.max(0, Math.ceil(t)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, "0")}`; };
   function showClocks() {
     const on = !!playTime.limit(), left = playTime.left();
-    $("clock").hidden = $("homeClock").hidden = !on;
-    if (!on) return;
+    $("clock").hidden = !on;
+    if (!on) { $("homeClock").textContent = "⏱️ No limit"; return; }
     $("clock").textContent = `⏱️ ${mmss(left)}`;
     $("homeClock").textContent = `⏱️ ${Math.max(0, Math.ceil(left / 60))} min`;
   }
@@ -2056,7 +2054,7 @@
     $("parent").hidden = true;
     if (playTime.left() > 0 && !$("sleep").hidden) { $("sleep").hidden = true; pullInStartTrain(); } // more time: wake the train
   };
-  $("parentBtn").onclick = () => openGate(openParent);
+  $("homeClock").onclick = () => openGate(openParent);
   $("sleepParent").onclick = () => openGate(openParent);
   if (playTime.left() <= 0) showSleep(); // reopened after today's time ran out
   $("otherBtn").onclick = () => { restoreHome(); renderLines(); show("home"); pullInStartTrain(); };

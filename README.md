@@ -29,7 +29,7 @@ Made for young kids:
 - Real underground and above-ground stations: the train goes into tunnels and comes out under the open sky where the real MRT does, and underground platforms look indoor
 - Day and night and changing weather: the ride starts at the real time of day, moves on every 6 stations (morning, afternoon, sunset, night), and the weather (sunny, cloudy, rain, thunderstorm) changes every 3–5 stations
 - Gentle background music. One 🔊 button turns all sound (music, voice and sound effects) on or off. It's an original tune written in code, not the real MRT audio. It gets quieter while the voice reads the question.
-- Play time for grown-ups: tap ⚙️ on the start screen (it asks a grown-up sum first) to set 10–30 minutes a day (20 minutes unless you change it, or Off). A ⏱️ clock counts down at the top while riding, the sky turns from morning to night as time runs out, the train says "2 more stops", then it goes to sleep until tomorrow. Reopening the game doesn't reset it. For a lock that can't be got round, also use iPhone Screen Time.
+- Play time for grown-ups: tap the ⏱️ chip at the top right of the start screen (it asks a grown-up sum first) to set 10–30 minutes a day (20 minutes unless you change it, or Off). A ⏱️ clock counts down at the top while riding, the sky turns from morning to night as time runs out, the train says "2 more stops", then it goes to sleep until tomorrow. Reopening the game doesn't reset it. For a lock that can't be got round, also use iPhone Screen Time.
 
 ## More game ideas
 - **Fare gate / EZ-Link top-up:** pay a fare with 1¢, 5¢ and 10¢ coins (number bonds to 10).
