@@ -1460,9 +1460,10 @@
       for (let k = k0 + 24; k >= k0; k--) { // the tunnel lining, ring by ring (far to near), lit by the train's headlights
         const zA = Math.max(NEAR, k * STEP - z0), zB = Math.min(lim, (k + 1) * STEP - z0);
         if (zB <= zA) continue;
-        const light = .3 + Math.min(1, 6 / (zA + 3)) * .9, base = k % 2 ? [62, 70, 79] : [53, 60, 68];
-        g.fillStyle = `rgb(${base.map(v => Math.round(v * light)).join(",")})`;
+        const light = .16 + Math.min(1, 5 / (zA + 2)), base = k % 2 ? [80, 91, 104] : [50, 57, 66];
+        g.fillStyle = `rgb(${base.map(v => Math.round(Math.min(255, v * light))).join(",")})`;
         g.beginPath(); arch(zA, true); arch(zB, true); g.fill("evenodd");
+        if (zA > NEAR) { arch(zA); g.strokeStyle = `rgba(170,186,202,${Math.min(.85, 2.5 / zA + .08)})`; g.lineWidth = Math.max(1, .1 * F / zA); g.stroke(); } // the joint between rings
       }
       wall(-1.9, 0, .5, NEAR, lim, "#2a3036"); quad(-2.6, -1.9, .5, .5, NEAR, lim, "#454d55"); // a walkway along the left wall
       track(z0, "#24282c", "#5f5245");
