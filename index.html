@@ -20,7 +20,7 @@
     --good: #2fa84f;
     --bad: #e0574a;
     --platform: #c9d3dc;
-    --shadow: 0 4px 0 rgba(0,0,0,.15);
+    --shadow: 0 4px 0 rgba(0,0,0,.15), 0 10px 16px -8px rgba(0,0,0,.3);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; }
@@ -33,7 +33,8 @@
   }
   button { font: inherit; color: inherit; cursor: pointer; border: 0; }
   .screen { display: none; min-height: 100%; padding: 16px; max-width: 760px; margin: 0 auto; }
-  .screen.active { display: flex; flex-direction: column; gap: 14px; }
+  .screen.active { display: flex; flex-direction: column; gap: 14px; animation: screenIn .3s ease-out; }
+  @keyframes screenIn { from { opacity: 0; } }
 
   /* ---------- Home ---------- */
   h1 { font-size: clamp(28px, 7vw, 44px); margin: 8px 0 0; text-align: center; }
@@ -394,6 +395,7 @@
   .sky-clouds { position: absolute; z-index: 0; inset: 0 0 auto; height: 70px; opacity: 0; pointer-events: none;
     background: var(--clouds) 0 -6px / 300px 90px repeat-x; animation: skyDrift 50s linear infinite; }
   @keyframes skyDrift { to { background-position-x: 300px; } }
+  .scene[data-weather="sunny"] .sky-clouds { opacity: .55; }
   .scene[data-weather="cloudy"] .sky-clouds { opacity: .95; }
   .scene[data-weather="rain"] .sky-clouds { opacity: 1; filter: brightness(.72); }
   .scene[data-weather="storm"] .sky-clouds { opacity: 1; filter: brightness(.5); }
@@ -423,8 +425,9 @@
   .env-pill { position: absolute; z-index: 4; top: 8px; left: 8px; background: rgba(255,255,255,.88); border-radius: 999px; padding: 1px 8px; font-size: 15px; line-height: 1.5; box-shadow: 0 2px 0 rgba(0,0,0,.12); pointer-events: none; }
   /* scenery layers scroll by background-position (set from JS while riding) */
   .layer { position: absolute; left: 0; right: 0; background-repeat: repeat-x; background-position: 0 100%; pointer-events: none; }
-  .layer.far { top: 0; height: 110px; }
-  .layer.near { top: 34px; height: 44px; }
+  .layer.far { top: 0; height: 110px; background-position: 40px 100%; }
+  .layer.far { opacity: .8; }
+  .layer.near { top: 10px; height: 100px; }
   /* Singapore-style MRT car (generic, no operator branding): white/silver body, dark window band,
      two stripes in the line colour, full-height double doors, sloped front with a big windscreen. */
   .train {
@@ -441,7 +444,7 @@
     background-position: 0 0, 0 9px, 0 0, 0 0, 0 0;
     background-repeat: no-repeat;
     border-radius: 10px 84px 12px 0; padding: 15px 74px 40px 12px;
-    box-shadow: inset 0 -5px 0 #8f9ba7, 0 4px 0 rgba(0,0,0,.12);
+    box-shadow: inset 0 -5px 0 #8f9ba7, inset 0 2px 0 rgba(255,255,255,.9), 0 4px 0 rgba(0,0,0,.12);
   }
   /* the car in front of it: same livery, just past a narrow gangway gap, running off the left edge */
   .train::before {
@@ -465,6 +468,9 @@
   /* wheels in two bogies, like a real car */
   .wheels { display: flex; gap: 6px; width: min(100%, 560px); margin: -8px auto 0; padding: 0 56px 0 30px; position: relative; z-index: 2; }
   .wheels i:nth-child(2) { margin-right: auto; }
+  /* equipment boxes under the floor, between the bogies (and under the car in front) */
+  .wheels::before { content: ""; position: absolute; z-index: -1; left: -620px; right: 34px; top: 5px; height: 15px; border-radius: 0 0 5px 5px;
+    background: repeating-linear-gradient(90deg, #2b343d 0 52px, #48535e 52px 55px, #353f49 55px 96px, #48535e 96px 99px); box-shadow: inset 0 3px 0 rgba(255,255,255,.08); }
   .wheels i {
     width: 26px; height: 26px; border-radius: 50%; border: 5px solid #777;
     background: linear-gradient(90deg, transparent 42%, #aaa 42% 58%, transparent 58%), linear-gradient(0deg, transparent 42%, #aaa 42% 58%, transparent 58%), #333;
@@ -483,6 +489,9 @@
   }
   .seat:nth-child(n+6) { background: linear-gradient(#c9621a 0 26%, #f39a4a 26%); }
   .seat.full { opacity: 1; }
+  /* at night the carriage lights are on: warm windows that glow */
+  .scene[data-time="night"] .window { background: linear-gradient(170deg, #fff6da, #f3e1b0); box-shadow: 0 0 16px 3px rgba(255,236,170,.6); }
+  .scene[data-time="night"] .door { box-shadow: 0 0 0 2px #a7b2bd, 0 0 10px 1px rgba(255,236,170,.35); }
   /* phones 360px and wider: slimmer doors and a shorter nose leave room for 5 seats across */
   @media (min-width: 360px) {
     .train { padding: 15px 58px 40px 10px; gap: 6px; }
@@ -499,9 +508,16 @@
      Rides slide #carbox out to the right and in from the left. */
   .stage { --below: 56px; position: relative; z-index: 1; padding-bottom: var(--below); transform-style: preserve-3d; transform: translateZ(-80px) rotateY(26deg); transform-origin: 40% 50%; }
   .carbox { position: relative; transform-style: preserve-3d; }
-  .carbox .roof { position: absolute; left: calc(50% - min(50%, 280px) - 610px); right: calc(50% - min(50%, 280px) + 64px); top: 0; height: 64px; transform-origin: top; transform: rotateX(-90deg); background: linear-gradient(#eef2f5, #c2cbd3); border-radius: 0 0 8px 8px; }
+  .carbox .roof { position: absolute; left: calc(50% - min(50%, 280px) - 610px); right: calc(50% - min(50%, 280px) + 64px); top: 0; height: 64px; transform-origin: top; transform: rotateX(-90deg); border-radius: 0 0 8px 8px;
+    background: repeating-linear-gradient(90deg, transparent 0 40px, rgba(60,75,90,.16) 40px 150px, transparent 150px 170px) 0 14px / auto 30px no-repeat, linear-gradient(#eef2f5, #c2cbd3); }
   .stage .floor { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below) - 30px); height: 320px; transform-origin: top; transform: translateZ(8px) rotateX(90deg); pointer-events: none;
-    background: linear-gradient(#f2c94c 0 9px, #e3e8ed 9px 12px, transparent 12px), repeating-linear-gradient(90deg, var(--platform) 0 46px, #b4bfca 46px 48px), var(--platform); }
+    background:
+      radial-gradient(circle, rgba(150,100,0,.5) 1.1px, transparent 1.5px) 0 0 / 6px 4.5px repeat-x,
+      radial-gradient(circle, rgba(150,100,0,.5) 1.1px, transparent 1.5px) 3px 4.5px / 6px 4.5px repeat-x,
+      linear-gradient(#f2c94c 0 9px, #f4f7f9 9px 12px, transparent 12px),
+      linear-gradient(rgba(20,30,45,.2), rgba(20,30,45,0) 54px),
+      repeating-linear-gradient(0deg, transparent 0 62px, #b4bfca 62px 64px),
+      repeating-linear-gradient(90deg, var(--platform) 0 46px, #b4bfca 46px 48px), var(--platform); }
   /* the track behind the platform edge (seen while the train is away) */
   .stage .trackbed { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below)); height: 150px; transform-origin: top; transform: rotateX(-90deg); pointer-events: none;
     background: linear-gradient(transparent 26px, #c3ccd4 26px 29px, transparent 29px 66px, #c3ccd4 66px 69px, transparent 69px), repeating-linear-gradient(90deg, #6e5e4e 0 10px, #8a7a68 10px 26px), #7d6d5c; }
@@ -519,6 +535,7 @@
   .pax.leaving::after { content: "👋"; position: absolute; right: -6px; top: -10px; font-size: 16px; }
   .pax .n { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 6px; }
   .pax.pop { animation: pop .4s ease-out; }
+  .platform .pax::before, .walker:not(.bye)::before { content: ""; position: absolute; z-index: -1; left: 10%; right: 10%; bottom: -5px; height: 8px; border-radius: 50%; background: rgba(0,0,0,.22); }
   /* seated: the face is sized to the seat (about 34px wide on a 390px phone) */
   .seat .pax { padding: 0; border-radius: 8px; font-size: clamp(20px, calc((100vw - 220px) / 5 * .7), calc(var(--seat) * .66)); }
   .seat .pax.leaving { background: #fff; box-shadow: 0 0 0 3px var(--bad); }
@@ -543,7 +560,10 @@
   @keyframes bump { 50% { transform: translateX(-50%) scale(1.3); } }
 
   /* little train running along a track (home + end screens) */
-  .mini-track { position: relative; height: 40px; overflow: hidden; border-bottom: 6px solid #8b7b6b; }
+  .mini-track { position: relative; height: 92px; flex: none; overflow: hidden; border-radius: 18px; border-bottom: 8px solid #8b7b6b;
+    background: var(--hdb) 0 calc(100% + 4px) / 190px auto repeat-x, var(--clouds) 30px 4px / 200px auto repeat-x, linear-gradient(#bfe3ff, #eaf6ff); }
+  #end.sleepy .mini-track { background: var(--hdb) 0 calc(100% + 4px) / 190px auto repeat-x, radial-gradient(1.5px 1.5px at 30px 14px, #fff 99%, transparent) 0 0 / 90px 50px, linear-gradient(#0c1734, #2a3a63); }
+  #end.sleepy .mini-train { animation: none; left: calc(50% - 70px); filter: brightness(.75); }
   .mini-train { position: absolute; bottom: 4px; display: flex; gap: 4px; animation: run 7s linear -2.5s infinite; }
   .mini-train span {
     width: 46px; height: 26px; border-radius: 4px; box-shadow: 0 2px 0 rgba(0,0,0,.15);
@@ -565,6 +585,9 @@
   .ans.wrong { background: #ffe1dd; border-color: var(--bad); opacity: .5; animation: shake .4s; }
   .ans.right { background: #d9f7e1; border-color: var(--good); }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
+  .spark { position: fixed; z-index: 20; font-size: 22px; line-height: 1; pointer-events: none; }
+  .stars.bump { animation: starBump .4s ease-out; }
+  @keyframes starBump { 40% { transform: scale(1.3); } }
   .feedback { text-align: center; font-size: 22px; min-height: 30px; margin: 0; font-weight: bold; }
   .feedback.good { color: var(--good); }
   .feedback.bad { color: var(--bad); }
@@ -576,6 +599,7 @@
   .big-emoji { font-size: 90px; animation: bounce 1s infinite alternate; }
   @keyframes bounce { to { transform: translateY(-14px); } }
   .end-stars { font-size: 34px; letter-spacing: 2px; word-break: break-all; }
+  .end-stars span { display: inline-block; animation: pop .4s ease-out both; }
   .confetti { position: fixed; top: -40px; font-size: 28px; pointer-events: none; animation: fall linear forwards; z-index: 9; }
   @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
 
@@ -585,6 +609,7 @@
     .route { height: 46px; }
     .scene { padding-top: 58px; min-height: 0; }
     .window { --seat: 40px; }
+    .big-emoji { font-size: 64px; }
     .stage { --below: 44px; }
     .story { font-size: 17px; }
     .equation { font-size: clamp(36px, 11vw, 60px); }
@@ -594,7 +619,7 @@
   @media (prefers-reduced-motion: reduce) {
     body[data-screen="home"]::before { animation: none; }
     .pax, .door i { transition: none; }
-    .walker span, .pax.pop, .tally.bump, .sitem, .here-ring, .sky-clouds, .rain, .sleep-train i { animation: none; }
+    .walker span, .pax.pop, .tally.bump, .sitem, .here-ring, .sky-clouds, .rain, .sleep-train i, .screen.active, .end-stars span, .stars.bump { animation: none; }
     .sleep-train i { opacity: .8; }
     .big-emoji, .confetti, .mini-train, .start-train, .start-train.leaving, .start-train.swapping, .signal.green .lamp-go, .signal.go .lamp-go, .signal.nudge, .st-car, .st-wheels i, .start-hint span { animation: none !important; }
   }
@@ -987,17 +1012,29 @@
   // ---- scenery art: simple SVG tiles that repeat sideways ----
   const svgUrl = svg => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   (function paintScenery() {
+    // far: a pale skyline, as if seen through haze
     let city = "";
     [[0,34,62],[38,26,40],[68,40,80],[112,30,52],[146,22,96],[172,38,58],[214,28,74],[246,44,46],[294,30,88],[328,30,54]].forEach(([x, w, h]) => {
-      city += `<rect x="${x}" y="${110 - h}" width="${w}" height="${h}" rx="3" fill="#9dbcd9"/>`;
-      for (let y = 110 - h + 8; y < 104; y += 12) for (let wx = x + 5; wx < x + w - 6; wx += 9) city += `<rect x="${wx}" y="${y}" width="5" height="6" fill="#d6e8f7"/>`;
+      city += `<rect x="${x}" y="${110 - h}" width="${w}" height="${h}" rx="2" fill="#b7cde2"/>`;
+      for (let y = 110 - h + 8; y < 104; y += 12) for (let wx = x + 5; wx < x + w - 6; wx += 9) city += `<rect x="${wx}" y="${y}" width="5" height="6" fill="#d3e3f1"/>`;
     });
     $("layerFar").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="110">${city}</svg>`);
-    let trees = "";
-    [[20,16],[70,12],[110,18],[170,14],[215,17],[270,13]].forEach(([x, r]) => {
-      trees += `<rect x="${x - 2}" y="${44 - 14}" width="4" height="14" fill="#7a5a3a"/><circle cx="${x}" cy="${44 - 14 - r * 0.6}" r="${r}" fill="#5cb85c"/><circle cx="${x + r * 0.5}" cy="${44 - 14 - r * 0.4}" r="${r * 0.7}" fill="#4aa64a"/>`;
+    // near: HDB flats (cream walls, a coloured roof band, rows of windows, a void deck) with trees in front
+    let town = "";
+    const roofs = ["#e07a5f", "#5fa8d3", "#f2c94c", "#81b29a", "#b388eb"];
+    [[6, 44, 78], [60, 34, 56], [104, 50, 90], [166, 34, 64], [210, 46, 82], [268, 36, 52], [314, 42, 72]].forEach(([x, w, h], i) => {
+      const top = 100 - h;
+      town += `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="#f6f1e8" stroke="#d9d0c1" stroke-width=".8"/>`;
+      town += `<rect x="${x + w - 7}" y="${top}" width="7" height="${h}" fill="#e6dfd2"/>`; // a side in shade
+      town += `<rect x="${x - 1}" y="${top - 3}" width="${w + 2}" height="5" rx="1" fill="${roofs[i % 5]}"/>`;
+      for (let y = top + 7; y < 88; y += 7) town += `<rect x="${x + 3}" y="${y}" width="${w - 13}" height="3" rx=".5" fill="#c1d5e5"/>`;
+      town += `<rect x="${x}" y="90" width="${w}" height="10" fill="#d8cfc0"/>`;
+      for (let px = x + 4; px < x + w - 3; px += 8) town += `<rect x="${px}" y="90" width="2" height="10" fill="#bfb4a3"/>`;
     });
-    $("layerNear").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="300" height="44">${trees}</svg>`);
+    [[30, 11], [94, 9], [150, 12], [198, 9], [254, 11], [304, 9], [352, 10]].forEach(([x, r]) => {
+      town += `<rect x="${x - 1.5}" y="${92 - r}" width="3" height="${r + 8}" fill="#7a5a3a"/><circle cx="${x}" cy="${92 - r}" r="${r}" fill="#4caf50"/><circle cx="${x - r * .3}" cy="${89 - r}" r="${r * .6}" fill="#66bb6a"/>`;
+    });
+    $("layerNear").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="370" height="100">${town}</svg>`);
   })();
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1242,24 +1279,32 @@
   // mouth where the line goes in or comes out, the next station's platform near the end, and the cab's
   // window frame and dashboard. q is 0..1 through the ride, z how far the train has gone, v its speed.
   function cabView(cv, fromUG, toUG, next) {
-    const scene = $("scene"), W = scene.clientWidth, H = scene.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+    const scene = $("scene"), W = scene.clientWidth, H = scene.clientHeight, dpr = Math.min(3, devicePixelRatio || 1);
     cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
     const g = cv.getContext("2d");
-    const DASH = 52, VH = H - DASH, vx = W / 2, hz = VH * .42, F = W * .55, CAM = 2.4, LEN = 70, NEAR = .5, ELEV = 9;
+    const DASH = 56, VH = H - DASH, vx = W / 2, hz0 = VH * .42, F = W * .55, CAM = 2.4, LEN = 70, NEAR = .5, ELEV = 9;
+    let hz = hz0; // the horizon bobs a little with the ride
     const P = (X, Y, z) => [vx + X * F / z, hz + (CAM - Y) * F / z];
     const lineCol = S.line.color;
     const poly = (pts, fill) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); };
     const quad = (X1, X2, Y1, Y2, z1, z2, fill) => poly([P(X1, Y1, z1), P(X2, Y1, z1), P(X2, Y2, z2), P(X1, Y2, z2)], fill);
+    const wall = (X, Y1, Y2, z1, z2, fill) => poly([P(X, Y1, z1), P(X, Y2, z1), P(X, Y2, z2), P(X, Y1, z2)], fill); // an upright face along the line
+    const disc = (x, y, r, fill) => { g.beginPath(); g.arc(x, y, Math.max(0, r), 0, 7); g.fillStyle = fill; g.fill(); };
     const rnd = k => { const x = Math.sin(k * 127.1) * 43758.5453; return x - Math.floor(x); };
-    let env = "", sky1, sky2, night, wet, ground;
+    // colours: #rrggbb → [r, g, b]; mix two of them (t = 0 gives a, 1 gives b)
+    const rgb = c => { const n = parseInt(/^#[0-9a-f]{6}$/i.test(c) ? c.slice(1) : "bfe3ff", 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+    const mix = (a, b, t) => { const A = rgb(a), B = rgb(b); return "#" + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join(""); };
+    let env = "", sky1, sky2, time, weather, night, wet, ground, hazeOf;
     function readEnv() {
       const key = scene.dataset.time + scene.dataset.weather;
       if (key === env) return;
       env = key;
       const cs = getComputedStyle(scene);
       sky1 = cs.getPropertyValue("--sky1").trim() || "#bfe3ff"; sky2 = cs.getPropertyValue("--sky2").trim() || "#e8f5ff";
-      night = scene.dataset.time === "night"; wet = /rain|storm/.test(scene.dataset.weather);
-      ground = night ? "#26331f" : scene.dataset.time === "evening" ? "#8a9a5a" : wet ? "#6f8f5c" : "#86b765";
+      time = scene.dataset.time; weather = scene.dataset.weather;
+      night = time === "night"; wet = /rain|storm/.test(weather);
+      ground = night ? "#26331f" : time === "evening" ? "#8a9a5a" : wet ? "#6f8f5c" : "#86b765";
+      hazeOf = (c, z) => mix(c, sky2, Math.min(.72, z / 120)); // far things fade into the sky
     }
     // the arch of a tunnel (or tunnel mouth) at depth z
     function arch(z, more) {
@@ -1267,45 +1312,97 @@
       if (!more) g.beginPath();
       g.moveTo(l, b); g.lineTo(l, w); g.quadraticCurveTo(l, t, vx, t); g.quadraticCurveTo(r, t, r, w); g.lineTo(r, b); g.closePath();
     }
-    function track(z0, bed) {
+    function track(z0, bed, sleeper) {
       quad(-1.5, 1.5, 0, 0, NEAR, 400, bed);
       for (let k = Math.ceil(z0); k < z0 + 60; k++) { // sleepers every 1 unit, moving towards us
         const z = k - z0 + NEAR; if (z < NEAR) continue;
-        quad(-1.05, 1.05, .02, .02, z, z + .25, `rgba(110,90,70,${Math.min(1, 3 / z + .2)})`);
+        g.globalAlpha = Math.min(1, 3 / z + .2); quad(-1.05, 1.05, .02, .02, z, z + .25, sleeper);
       }
-      g.strokeStyle = "#c3ccd4"; g.lineWidth = 2.5;
-      [-.72, .72].forEach(X => { const [x1, y1] = P(X, .05, NEAR), [x2, y2] = P(X, .05, 400); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); });
+      g.globalAlpha = 1;
+      [-.72, .72].forEach(X => { // rails: a dark foot with a shiny top
+        const [x1, y1] = P(X, .05, NEAR), [x2, y2] = P(X, .05, 400);
+        g.strokeStyle = "#4d565f"; g.lineWidth = 4.5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+        g.strokeStyle = "#dfe6ec"; g.lineWidth = 1.8; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+      });
     }
     function station(zS, under) { // the next platform, on the left, from zS onwards
       if (zS > 40) return;
-      const z1 = Math.max(NEAR, zS), z2 = zS + 30;
-      if (under) { poly([P(-7, 0, z2), P(7, 0, z2), P(7, 5, z2), P(-7, 5, z2)], "#fff3cf"); }
-      quad(-7, -1.6, 1.1, 1.1, z1, z2, "#d5dde4");                       // platform top
-      poly([P(-1.6, 0, z1), P(-1.6, 1.1, z1), P(-1.6, 1.1, z2), P(-1.6, 0, z2)], "#7d8791"); // its edge
-      quad(-1.95, -1.6, 1.11, 1.11, z1, z2, "#f2c94c");                  // yellow line
-      quad(-7, 3, 4.6, 4.6, z1, z2, under ? "#e9edf1" : "#dfe5ea");       // roof / ceiling
-      if (zS > 9) poly([P(-7, 4.6, z1), P(3, 4.6, z1), P(3, 4.1, z1), P(-7, 4.1, z1)], lineCol); // its fascia in the line colour
-      for (let k = 0; k < 6; k++) { const z = z1 + 2 + k * 5; if (z < z2) quad(-5.2, -5, 1.1, 4.1, z, z, "#9aa6b2"); } // pillars
+      const z1 = Math.max(NEAR, zS), z2 = zS + 30, top = under ? 4.1 : 2.5;
+      if (under) poly([P(-7, 0, z2), P(7, 0, z2), P(7, 5, z2), P(-7, 5, z2)], "#fff3cf"); // the lit hall beyond
+      quad(-7, -1.6, 1.1, 1.1, z1, z2, "#d5dde4");                      // platform top
+      wall(-1.6, 0, 1.1, z1, z2, "#6f7983");                           // its edge
+      quad(-1.95, -1.6, 1.11, 1.11, z1, z2, "#f2c94c");                 // yellow line
+      quad(-2.02, -1.95, 1.11, 1.11, z1, z2, "#f7f9fb");
+      quad(-7, 3, 4.6, 4.6, z1, z2, under ? "#e9edf1" : "#cfd7de");      // roof / ceiling
+      for (let k = 0; k < 7; k++) { const z = z1 + 1 + k * 4.5; if (z < z2) quad(-7, 3, 4.58, 4.58, z, z + .35, under ? "#fffbe6" : "#b3bdc7"); } // lights / beams
+      for (let k = 5; k >= 0; k--) { // pillars, far to near
+        const z = z1 + 2 + k * 5; if (z >= z2) continue;
+        quad(-5.25, -4.95, 1.1, 4.1, z, z, "#aab5c0"); wall(-4.95, 1.1, 4.1, z, z + .3, "#7f8b97");
+      }
+      // platform screen doors along the edge: glass panels between posts (half height outside, full height underground)
+      wall(-1.6, 1.1, top, z1, z2, "rgba(190,225,245,.3)");
+      g.strokeStyle = "#8f9ba7";
+      for (let k = 0; k < 13; k++) {
+        const z = z1 + k * 2.5; if (z >= z2) break;
+        const [x, y] = P(-1.6, 1.1, z), [, t] = P(-1.6, top, z);
+        g.lineWidth = Math.max(1, .1 * F / z); g.beginPath(); g.moveTo(x, y); g.lineTo(x, t); g.stroke();
+      }
+      const [ax, ay] = P(-1.6, top, z1), [bx, by] = P(-1.6, top, z2);
+      g.lineWidth = 2; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
+      if (zS > 9) poly([P(-7, 4.6, z1), P(3, 4.6, z1), P(3, 4.1, z1), P(-7, 4.1, z1)], lineCol); // roof fascia in the line colour
+    }
+    function sky(z0) {
+      const sg = g.createLinearGradient(0, 0, 0, hz); sg.addColorStop(0, sky1); sg.addColorStop(1, sky2);
+      g.fillStyle = sg; g.fillRect(0, 0, W, hz + 1);
+      if (night) {
+        for (let k = 0; k < 28; k++) { g.fillStyle = `rgba(255,255,255,${.5 + rnd(k + 5) * .5})`; g.fillRect(rnd(k) * W, rnd(k + 50) * hz * .8, 1.6, 1.6); }
+        if (!wet) { disc(W * .78, hz * .3, 12, "#f4eec4"); disc(W * .78 + 6, hz * .3 - 3, 11, sky1); } // a crescent moon
+      } else {
+        const sx = W * .78, sy = hz * (time === "afternoon" ? .26 : .62), col = time === "evening" ? "255,122,61" : time === "morning" ? "255,199,106" : "255,216,74";
+        g.globalAlpha = weather === "sunny" ? 1 : .3;
+        const gl = g.createRadialGradient(sx, sy, 4, sx, sy, 60); gl.addColorStop(0, `rgba(${col},.55)`); gl.addColorStop(1, `rgba(${col},0)`);
+        g.fillStyle = gl; g.fillRect(sx - 60, sy - 60, 120, 120);
+        disc(sx, sy, 13, `rgb(${col})`);
+        g.globalAlpha = 1;
+      }
+      // clouds: a few fair-weather ones when sunny, a grey blanket in rain
+      const n = weather === "sunny" ? 3 : weather === "cloudy" ? 7 : 9, drift = performance.now() / 1000 * 2;
+      const tone = night ? "70,80,100" : weather === "sunny" ? "255,255,255" : weather === "cloudy" ? "240,244,248" : weather === "rain" ? "170,180,192" : "120,130,145";
+      for (let k = 0; k < n; k++) {
+        const s = .6 + rnd(k + 20) * .7, x = ((rnd(k + 11) * (W + 160) + drift * (.5 + rnd(k))) % (W + 160)) - 80, y = hz * (.12 + rnd(k + 30) * .5);
+        g.fillStyle = `rgba(${tone},${night ? .55 : .9})`;
+        g.beginPath(); g.ellipse(x, y + 7 * s, 30 * s, 9 * s, 0, 0, 7); g.ellipse(x - 12 * s, y + 2 * s, 14 * s, 10 * s, 0, 0, 7); g.ellipse(x + 9 * s, y - 2 * s, 17 * s, 13 * s, 0, 0, 7); g.fill();
+      }
     }
     function outside(z0, zS, zP = 999) {
       readEnv();
-      const sg = g.createLinearGradient(0, 0, 0, hz); sg.addColorStop(0, sky1); sg.addColorStop(1, sky2);
-      g.fillStyle = sg; g.fillRect(0, 0, W, hz + 1);
-      if (night) for (let k = 0; k < 24; k++) { g.fillStyle = "rgba(255,255,255,.8)"; g.fillRect(rnd(k) * W, rnd(k + 50) * hz * .8, 1.5, 1.5); }
-      g.fillStyle = ground; g.fillRect(0, hz, W, VH - hz);
-      for (let k = 0; k < 14; k++) { // the city on the horizon
-        const x = rnd(k + 9) * W, w = 14 + rnd(k + 3) * 22, h = 10 + rnd(k + 7) * 30;
-        g.fillStyle = night ? "#2a3550" : "#a9c1d8"; g.fillRect(x, hz - h, w, h);
+      sky(z0);
+      // the ground, lighter and hazier towards the horizon
+      const gg = g.createLinearGradient(0, hz, 0, VH); gg.addColorStop(0, hazeOf(ground, 70)); gg.addColorStop(.5, ground); gg.addColorStop(1, mix(ground, "#000000", .12));
+      g.fillStyle = gg; g.fillRect(0, hz, W, VH - hz);
+      for (let k = 0; k < 16; k++) { // the city on the horizon, fading into the sky
+        const x = rnd(k + 9) * W, w = 12 + rnd(k + 3) * 24, h = 8 + rnd(k + 7) * 32;
+        g.fillStyle = hazeOf(night ? "#2a3550" : "#8fa9c4", 60 + rnd(k) * 30); g.fillRect(x, hz - h, w, h + 1);
       }
+      g.fillStyle = hazeOf(night ? "#1d2a22" : "#5f9a62", 80); g.fillRect(0, hz - 3, W, 4); // a far line of trees
       // Like the real MRT outside the city centre, the line runs on a viaduct: the ground, roads, trees and the
       // feet of the HDB flats are ELEV below the track, and the deck (with low concrete walls) hides what's under it.
       const GY = -ELEV, dash = night ? "#c9c27a" : "#f4f4f4";
-      [-9, 9].forEach(X => { // roads alongside, with lane markings rushing past
-        quad(X - 1.8, X + 1.8, GY, GY, NEAR, 400, night ? "#3a3f45" : "#9a9fa5");
+      [-9, 9].forEach(X => { // roads alongside, with lane markings rushing past and a few cars
+        quad(X - 1.9, X + 1.9, GY, GY, NEAR, 400, night ? "#3a3f45" : "#8f959c");
         for (let k = Math.ceil(z0 / 4); k < z0 / 4 + 25; k++) { const z = k * 4 - z0; if (z > NEAR) quad(X - .07, X + .07, GY, GY, z, z + 1.6, dash); }
+        const pace = X < 0 ? .45 : 1.6; // the left road goes our way (we overtake); the right road comes towards us
+        for (let k = Math.ceil(z0 * pace / 15); k < z0 * pace / 15 + 7; k++) {
+          const z = k * 15 + rnd(k) * 6 - z0 * pace, cx = X + (X < 0 ? -.85 : .85);
+          if (z < NEAR + 2 || z > zP) continue;
+          const col = ["#e2574c", "#f2c94c", "#4a90d9", "#f4f6f8", "#3aa76d", "#8e6fd1"][Math.abs(k) % 6];
+          quad(cx - .55, cx + .55, GY + .5, GY + .5, z, z + 2.2, hazeOf(night ? mix(col, "#000000", .55) : col, z));
+          quad(cx - .45, cx + .45, GY + .55, GY + .55, z + .5, z + 1.5, hazeOf(night ? "#1c2530" : "#2f4a63", z));
+          if (night) quad(cx - .5, cx + .5, GY + .1, GY + .1, X < 0 ? z + 2.2 : z - 1.6, X < 0 ? z + 3.8 : z, "rgba(255,240,180,.35)"); // headlights on the road
+        }
       });
       if (zP < 400) { // where the line goes underground: a grassy bank with the tunnel mouth in it, which hides what's beyond
-        quad(-80, 80, GY, 6, zP, zP, night ? "#2c3a28" : "#7fa865");
+        quad(-80, 80, GY, 6, zP, zP, hazeOf(night ? "#2c3a28" : "#7fa865", zP));
         g.save(); g.beginPath(); g.rect(0, 0, W, VH); arch(zP, true); g.clip("evenodd");
         quad(-4.2, 4.2, GY, 6.2, zP, zP, night ? "#6d6a64" : "#b9b3aa"); g.restore(); // concrete face around the mouth
         arch(zP); g.fillStyle = "#11161b"; g.fill();
@@ -1317,25 +1414,35 @@
       items.filter(i => i[1] > NEAR + .3 && i[1] < zP).sort((a, b) => b[1] - a[1]).forEach(([kind, z, k]) => {
         const side = k % 2 ? 1 : -1;
         if (kind === "hdb") {
-          const X = side * (14 + rnd(k) * 5), w = 6, h = 24 + rnd(k + 1) * 14;
-          const [x1, y1] = P(X - w / 2, GY + h, z), [x2, y2] = P(X + w / 2, GY, z);
-          g.fillStyle = night ? "#3b4660" : ["#f3efe6", "#e8eef3", "#f6e7d3"][k % 3]; g.fillRect(x1, y1, x2 - x1, y2 - y1);
-          const cw = (x2 - x1) / 5, ch = (y2 - y1) / 16;
-          g.fillStyle = night ? "#ffd86a" : "#a8c3d9";
-          for (let r = 1; r < 16; r += 1.5) for (let c = .6; c < 4.6; c += 1.4) if (!night || rnd(k * 31 + r * 7 + c) > .45) g.fillRect(x1 + c * cw, y1 + r * ch, cw * .7, ch * .55);
+          const X = side * (14 + rnd(k) * 5), w = 6, d = 5, h = 24 + rnd(k + 1) * 14, xin = X - side * w / 2;
+          const paint = night ? "#39445c" : ["#f6f1e8", "#f3ead9", "#f8ead8"][Math.abs(k) % 3], roof = ["#e07a5f", "#5fa8d3", "#f2c94c", "#81b29a", "#b388eb"][Math.abs(k) % 5];
+          wall(xin, GY, GY + h, z, z + d, hazeOf(mix(paint, "#000000", .2), z)); // the side facing the line, in shade
+          const [x1, y1] = P(X - w / 2, GY + h, z), [x2, y2] = P(X + w / 2, GY, z), bw = x2 - x1, bh = y2 - y1, rows = 13, ch = bh / (rows + 1);
+          g.fillStyle = hazeOf(paint, z); g.fillRect(x1, y1, bw, bh);
+          g.fillStyle = hazeOf(night ? mix(roof, "#000000", .5) : roof, z); g.fillRect(x1 - bw * .03, y1 - ch * .25, bw * 1.06, ch * .5); // roof band
+          for (let r = 1; r < rows; r++) { // rows of windows (lit here and there at night)
+            if (!night) { g.fillStyle = hazeOf("#9dbbd6", z); g.fillRect(x1 + bw * .08, y1 + r * ch, bw * .84, ch * .42); }
+            else for (let c = 0; c < 5; c++) if (rnd(k * 31 + r * 7 + c) > .5) { g.fillStyle = "#ffd86a"; g.fillRect(x1 + bw * (.1 + c * .17), y1 + r * ch, bw * .11, ch * .45); }
+          }
+          g.fillStyle = hazeOf(night ? mix(roof, "#000000", .55) : roof, z); g.fillRect(x1 + bw * (side > 0 ? .06 : .8), y1, bw * .14, bh); // a stripe of colour down the block
+          g.fillStyle = hazeOf(mix(paint, "#000000", .28), z); g.fillRect(x1, y2 - ch * .9, bw, ch * .9); // the void deck
         } else {
           const X = side * (k % 3 ? 4.6 + rnd(k) * 2 : 12 + rnd(k) * 2), [tx, ty] = P(X, GY, z), [, top] = P(X, GY + 4, z), r = 1.7 * F / z;
-          g.fillStyle = "#6b4f33"; g.fillRect(tx - .15 * F / z, top, .3 * F / z, ty - top);
-          g.fillStyle = night ? "#24402a" : ["#4f9d4f", "#5cb85c", "#468f46"][k % 3]; g.beginPath(); g.arc(tx, top, r, 0, 7); g.fill();
+          const leaf = night ? "#24402a" : ["#4f9d4f", "#5cb85c", "#468f46"][Math.abs(k) % 3];
+          g.fillStyle = hazeOf("#6b4f33", z); g.fillRect(tx - .15 * F / z, top, .3 * F / z, ty - top);
+          disc(tx, top, r, hazeOf(mix(leaf, "#000000", .12), z));
+          disc(tx - r * .28, top - r * .3, r * .62, hazeOf(mix(leaf, "#ffffff", night ? .04 : .16), z)); // sunlit side
         }
       });
-      // the viaduct deck, the track on it, and its low side walls
+      // the viaduct deck, the track on it, its low side walls and the power rail
       const zEnd = Math.min(400, zP); // the deck and its walls stop at a tunnel mouth
       quad(-2.8, 2.8, 0, 0, NEAR, zEnd, night ? "#5d5a55" : "#b9b3aa");
-      track(z0, "#8d8478");
+      for (let k = Math.ceil(z0 / 6); k < z0 / 6 + 12; k++) { const z = k * 6 - z0; if (z > NEAR && z < zEnd) quad(-2.8, 2.8, .01, .01, z, z + .12, "rgba(0,0,0,.14)"); } // joints in the deck
+      track(z0, night ? "#6b655d" : "#8d8478", "#6e5a46");
+      quad(-1.36, -1.2, .3, .3, NEAR, zEnd, night ? "#9a8f62" : "#eadb9a"); wall(-1.2, .08, .3, NEAR, zEnd, night ? "#6f6746" : "#b8a96c"); // power rail under its cover
       [-2.8, 2.8].forEach(X => {
-        poly([P(X, 0, NEAR), P(X, .6, NEAR), P(X, .6, zEnd), P(X, 0, zEnd)], night ? "#77736c" : "#d6d1c8");
-        quad(X - .12 * Math.sign(X), X + .12 * Math.sign(X), .6, .6, NEAR, zEnd, night ? "#8c8780" : "#ece8e1");
+        wall(X, 0, .6, NEAR, zEnd, night ? "#77736c" : "#d6d1c8");
+        quad(X - .12 * Math.sign(X), X + .12 * Math.sign(X), .6, .6, NEAR, zEnd, night ? "#8c8780" : "#f0ece5");
       });
       for (let k = Math.ceil(z0 / 5); k < z0 / 5 + 16; k++) { // posts along the walls, so the speed shows
         const z = k * 5 - z0; if (z < NEAR + .2 || z > zEnd) continue;
@@ -1344,42 +1451,85 @@
       station(zS, false);
     }
     function inside(z0, zS) {
-      g.fillStyle = "#11161b"; g.fillRect(0, 0, W, VH);
-      const lim = Math.min(60, zS);
+      g.fillStyle = "#0b0f13"; g.fillRect(0, 0, W, VH);
+      const lim = Math.min(60, zS), STEP = 2.5, k0 = Math.floor(z0 / STEP);
       if (zS < 60) { // light from the station ahead
         const [gx, gy] = P(0, 2, zS), gl = g.createRadialGradient(gx, gy, 2, gx, gy, 6 * F / zS + 30);
         gl.addColorStop(0, "rgba(255,240,200,.9)"); gl.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = gl; g.fillRect(0, 0, W, VH);
       }
-      track(z0, "#2b2f33");
-      for (let k = Math.ceil(z0 / 2.5); k < z0 / 2.5 + 30; k++) { // tunnel rings, every 2.5 units
-        const z = k * 2.5 - z0; if (z < NEAR || z > lim) continue;
-        arch(z); g.strokeStyle = `rgba(120,135,150,${Math.min(.9, 2.5 / z + .1)})`; g.lineWidth = Math.max(1, .35 * F / z); g.stroke();
-        if (k % 2) [-2.45, 2.45].forEach(X => { const [x, y] = P(X, 2.2, z); g.fillStyle = "#ffd98a"; g.fillRect(x - .06 * F / z, y, .12 * F / z + 1, .5 * F / z + 1); });
+      for (let k = k0 + 24; k >= k0; k--) { // the tunnel lining, ring by ring (far to near), lit by the train's headlights
+        const zA = Math.max(NEAR, k * STEP - z0), zB = Math.min(lim, (k + 1) * STEP - z0);
+        if (zB <= zA) continue;
+        const light = .16 + Math.min(1, 5 / (zA + 2)), base = k % 2 ? [80, 91, 104] : [50, 57, 66];
+        g.fillStyle = `rgb(${base.map(v => Math.round(Math.min(255, v * light))).join(",")})`;
+        g.beginPath(); arch(zA, true); arch(zB, true); g.fill("evenodd");
+        if (zA > NEAR) { arch(zA); g.strokeStyle = `rgba(170,186,202,${Math.min(.85, 2.5 / zA + .08)})`; g.lineWidth = Math.max(1, .1 * F / zA); g.stroke(); } // the joint between rings
       }
+      wall(-1.9, 0, .5, NEAR, lim, "#2a3036"); quad(-2.6, -1.9, .5, .5, NEAR, lim, "#454d55"); // a walkway along the left wall
+      track(z0, "#24282c", "#5f5245");
+      for (let k = k0 + 24; k >= k0; k--) { // wall lights on every other ring
+        const z = k * STEP - z0; if (!(k % 2) || z < NEAR + .4 || z > lim) continue;
+        [-2.45, 2.45].forEach(X => {
+          const [x, y] = P(X, 2.5, z), s = F / z;
+          if (z < 22) { const gl = g.createRadialGradient(x, y, 0, x, y, .7 * s); gl.addColorStop(0, "rgba(255,226,150,.38)"); gl.addColorStop(1, "rgba(255,226,150,0)"); g.fillStyle = gl; g.fillRect(x - .7 * s, y - .7 * s, 1.4 * s, 1.4 * s); }
+          g.fillStyle = "#ffe9b0"; g.fillRect(x - .05 * s, y - .22 * s, .1 * s + 1, .44 * s + 1);
+        });
+      }
+      const hl = g.createRadialGradient(vx, VH + 10, 10, vx, VH + 10, W * .55); hl.addColorStop(0, "rgba(255,246,220,.2)"); hl.addColorStop(1, "rgba(255,246,220,0)");
+      g.fillStyle = hl; g.fillRect(0, hz, W, VH - hz); // the headlights on the track
       station(zS, true);
     }
     function frameAndDash(v, wet) {
-      if (wet) { g.strokeStyle = "rgba(220,235,255,.55)"; g.lineWidth = 1.2; for (let k = 0; k < 40; k++) { const x = Math.random() * W, y = Math.random() * VH; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 3, y + 9 + v * 8); g.stroke(); } }
-      g.fillStyle = "#e9edf1"; g.beginPath(); g.rect(0, 0, W, VH + 2); if (g.roundRect) g.roundRect(12, 8, W - 24, VH - 12, 20); else g.rect(12, 8, W - 24, VH - 12); g.fill("evenodd"); // window frame
-      g.fillStyle = "rgba(255,255,255,.08)"; poly([[34, 10], [90, 10], [44, VH - 6], [16, VH - 6]], "rgba(255,255,255,.08)");
-      const dg = g.createLinearGradient(0, VH, 0, H); dg.addColorStop(0, "#3b4651"); dg.addColorStop(1, "#212931");
+      if (wet) {
+        g.strokeStyle = "rgba(220,235,255,.55)"; g.lineWidth = 1.2;
+        for (let k = 0; k < 40; k++) { const x = Math.random() * W, y = Math.random() * VH; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 3, y + 9 + v * 8); g.stroke(); }
+        // the windscreen wiper sweeps from side to side
+        const a = Math.sin(performance.now() / 380) * 1.05, len = VH * .78, px = vx, py = VH + 8;
+        const ex = px + Math.sin(a) * len, ey = py - Math.cos(a) * len, mx = px + Math.sin(a) * len * .45, my = py - Math.cos(a) * len * .45;
+        g.lineCap = "round";
+        g.strokeStyle = "#1b2126"; g.lineWidth = 3; g.beginPath(); g.moveTo(px, py); g.lineTo(ex, ey); g.stroke();
+        g.lineWidth = 6; g.beginPath(); g.moveTo(mx, my); g.lineTo(ex, ey); g.stroke();
+        g.lineCap = "butt";
+      }
+      const shade = g.createLinearGradient(0, 8, 0, 44); shade.addColorStop(0, "rgba(0,0,0,.28)"); shade.addColorStop(1, "rgba(0,0,0,0)");
+      g.fillStyle = shade; g.fillRect(12, 8, W - 24, 36); // the sun visor's shade at the top of the glass
+      const fg = g.createLinearGradient(0, 0, 0, VH); fg.addColorStop(0, "#f3f6f8"); fg.addColorStop(1, "#cdd5dc");
+      const opening = () => { if (g.roundRect) g.roundRect(12, 8, W - 24, VH - 12, 20); else g.rect(12, 8, W - 24, VH - 12); };
+      g.fillStyle = fg; g.beginPath(); g.rect(0, 0, W, VH + 2); opening(); g.fill("evenodd"); // window frame
+      g.strokeStyle = "#232a31"; g.lineWidth = 3; g.beginPath(); opening(); g.stroke();               // its rubber seal
+      poly([[34, 10], [90, 10], [44, VH - 6], [16, VH - 6]], "rgba(255,255,255,.08)");               // a reflection on the glass
+      // the dashboard: a display with the next stop, and a speed dial
+      const dg = g.createLinearGradient(0, VH, 0, H); dg.addColorStop(0, "#3b4651"); dg.addColorStop(1, "#1d242b");
       g.fillStyle = dg; g.fillRect(0, VH, W, DASH);
       g.fillStyle = lineCol; g.fillRect(0, VH, W, 4);
-      g.fillStyle = "#3ddc5f"; g.beginPath(); g.arc(24, VH + 28, 6, 0, 7); g.fill();
+      const my = VH + 4 + (DASH - 4) / 2, dialX = W - 34;
+      g.fillStyle = "#0e1418"; g.beginPath(); if (g.roundRect) g.roundRect(10, my - 17, dialX - 44, 34, 9); else g.rect(10, my - 17, dialX - 44, 34); g.fill();
+      disc(26, my, 6, "#3ddc5f");
       const fs = Math.min(17, W / 22); g.font = `800 ${fs}px system-ui, sans-serif`; g.textBaseline = "middle";
-      g.fillStyle = "#9fb3c4"; g.fillText("Next stop", 40, VH + 29);
+      g.fillStyle = "#9fb3c4"; g.fillText("Next stop", 40, my + 1);
       const nx = 46 + g.measureText("Next stop").width;
-      g.fillStyle = "#fff"; g.fillText(next, nx, VH + 29, W - nx - 12);
+      g.fillStyle = "#fff"; g.fillText(next, nx, my + 1, Math.max(20, dialX - 40 - nx));
+      const R = 19, a0 = Math.PI * .8, a1 = Math.PI * 2.2, an = a0 + (a1 - a0) * Math.max(0, Math.min(1, v));
+      disc(dialX, my, R + 4, "#0e1418");
+      g.lineCap = "round"; g.lineWidth = 4;
+      g.strokeStyle = "#3a4651"; g.beginPath(); g.arc(dialX, my, R - 3, a0, a1); g.stroke();
+      g.strokeStyle = "#3ddc5f"; g.beginPath(); g.arc(dialX, my, R - 3, a0, an); g.stroke();
+      g.strokeStyle = "#fff"; g.lineWidth = 2.2; g.beginPath(); g.moveTo(dialX, my); g.lineTo(dialX + Math.cos(an) * (R - 6), my + Math.sin(an) * (R - 6)); g.stroke();
+      g.lineCap = "butt";
+      disc(dialX, my, 2.6, "#fff");
     }
     return {
       draw(q, z0, v) {
         q = Math.max(0, Math.min(1, q));
         const zS = (1 - q) * LEN + 2, zP = (.5 - q) * LEN; // the next station; the tunnel mouth (if the line goes in or out)
         g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        hz = hz0 + (reduceMotion ? 0 : Math.sin(z0 * 1.7) * 1.1 * v);
         const under = fromUG === toUG ? fromUG : fromUG ? zP > NEAR : zP <= NEAR;
         const mouth = fromUG !== toUG && zP > NEAR && zP < 70;
+        g.save(); g.beginPath(); g.rect(0, 0, W, VH); g.clip(); // the world stays above the dashboard
         if (under) inside(z0, zS); else outside(z0, zS, mouth ? zP : 999); // outside, the tunnel mouth is drawn in its place
         if (under && mouth) { g.save(); arch(zP); g.clip(); outside(z0, 99); g.restore(); } // daylight at the end of the tunnel
+        g.restore();
         readEnv();
         frameAndDash(v, wet && !under);
       },
@@ -1490,6 +1640,7 @@
     const cheer = pick(CHEERS);
     $("feedback").textContent = `${cheer} ${q.a} ${q.op === "+" ? "+" : "−"} ${q.b} = ${q.ans} ${S.tries === 0 ? "⭐" : ""}`;
     sfx.right();
+    sparkle(btn, S.tries === 0);
     document.querySelectorAll("#scene .pax .n").forEach(n => n.remove()); // clear tap-to-count numbers
     setTally(`🧑 ${q.ans}`, true);
     say(`${cheer} ${q.a} ${q.op === "+" ? "plus" : "take away"} ${q.b} is ${q.ans}!`);
@@ -1499,6 +1650,25 @@
       if (gen !== S.gen) return;
       continueTrip();
     }, 3200);
+  }
+
+  // A right answer: sparkles burst from the button, and a first-try star flies up to the ⭐ count.
+  function sparkle(from, star) {
+    const count = $("starCount"), a = from.getBoundingClientRect(), cx = a.left + a.width / 2, cy = a.top + a.height / 2;
+    const bump = () => { count.classList.remove("bump"); void count.offsetWidth; count.classList.add("bump"); };
+    if (reduceMotion) { if (star) bump(); return; }
+    const spark = text => { const e = document.createElement("div"); e.className = "spark"; e.textContent = text; e.style.left = cx + "px"; e.style.top = cy + "px"; document.body.appendChild(e); return e; };
+    for (let i = 0; i < 8; i++) {
+      const e = spark(pick(["✨", "⭐", "🌟"])), ang = i / 8 * 2 * Math.PI + Math.random() * .6, d = 55 + Math.random() * 45;
+      e.animate([{ transform: "translate(-50%, -50%) scale(.4)", opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(ang) * d}px), calc(-50% + ${Math.sin(ang) * d}px)) scale(1.1) rotate(${rand(-90, 90)}deg)`, opacity: 0 }],
+        { duration: 650 + Math.random() * 300, easing: "cubic-bezier(.2,.7,.3,1)" }).onfinish = () => e.remove();
+    }
+    if (!star) return;
+    const b = count.getBoundingClientRect(), e = spark("⭐");
+    e.animate([{ transform: "translate(-50%, -50%) scale(1.7)" },
+      { transform: `translate(calc(-50% + ${b.left + 18 - cx}px), calc(-50% + ${b.top + b.height / 2 - cy}px)) scale(.8)` }],
+      { duration: 700, easing: "cubic-bezier(.5,-.3,.6,1)" }).onfinish = () => { e.remove(); bump(); };
   }
 
   // ---- passengers walking on and off ----
@@ -1899,18 +2069,24 @@
   }
   function closePicker() { $("picker").hidden = true; }
 
+  // The end screen's row of stars pops in one at a time.
+  function showEndStars(total) {
+    $("endStars").innerHTML = [..."⭐".repeat(S.stars) + "☆".repeat(total - S.stars)].map((c, i) => `<span style="animation-delay:${Math.min(i * 60, 1500)}ms">${c}</span>`).join("");
+  }
   function finish(sleepy) {
     const total = S.asked;
     const last = S.line.stations[S.at];
     $("stopsPill").hidden = true;
     $("againBtn").hidden = $("otherBtn").hidden = !!sleepy;
     $("nightBtn").hidden = !sleepy;
+    $("end").classList.toggle("sleepy", !!sleepy);
+    $("end").querySelector(".big-emoji").textContent = sleepy ? "🌙" : "🏆";
     $("endTime").textContent = `⏱️ Played today: ${Math.round(playTime.rec().used / 60)} min`;
     if (sleepy) { // play time is up: the train goes to the depot to sleep
       const r = playTime.rec(); r.used = Math.max(r.used, playTime.total()); playTime.save(r); // asleep for the rest of today
       $("endTitle").textContent = "Time for the train to rest! 😴";
       $("endText").textContent = `Great riding today! You rode ${total} stop${total > 1 ? "s" : ""} and got ${S.stars} star${S.stars === 1 ? "" : "s"}. The train is going to the depot to sleep. See you tomorrow!`;
-      $("endStars").textContent = "⭐".repeat(S.stars) + "☆".repeat(total - S.stars);
+      showEndStars(total);
       show("end");
       sfx.chime();
       say(`Great riding today! You got ${S.stars} stars. The train is going to sleep now. See you tomorrow!`);
@@ -1923,7 +2099,7 @@
     $("endTitle").textContent = `You reached ${last}!`;
     const found = S.surprises ? ` You found ${S.surprises} surprise${S.surprises > 1 ? "s" : ""}! 🎁` : "";
     $("endText").textContent = `You rode ${total} stop${total > 1 ? "s" : ""} and got ${S.stars} out of ${total} stars on the first try!${found}`;
-    $("endStars").textContent = "⭐".repeat(S.stars) + "☆".repeat(total - S.stars);
+    showEndStars(total);
     show("end");
     sfx.chime(); setTimeout(sfx.right, 900);
     say(`Hooray! You reached ${last}! You got ${S.stars} stars!`);
