@@ -83,6 +83,9 @@ async function play(p, choose = () => 0) {
       r.maxNum = Math.max(r.maxNum, +a, +b, ans);
       const seated = await p.$$eval('#carriage .pax', x => x.filter(e => e.style.visibility !== 'hidden').length);
       if (seated !== ans) r.bad += ` ${eq} but ${seated} in the train;`;
+      // 10 seats, filled in order with no gaps (the first row of 5, then the second)
+      const seats = await p.$$eval('#carriage .seat', x => x.map(e => e.querySelector('.pax') && e.classList.contains('full') ? 1 : e.querySelector('.pax') || e.classList.contains('full') ? 'x' : 0).join(''));
+      if (seats !== '1'.repeat(ans) + '0'.repeat(10 - ans)) r.bad += ` ${eq} but seats ${seats};`;
       await p.click(`#answers .ans >> text="${ans}"`);
       r.questions++;
       await p.waitForFunction(() => !document.querySelector('#answers .ans') || document.querySelector('#end.active')

@@ -469,10 +469,30 @@
     width: 26px; height: 26px; border-radius: 50%; border: 5px solid #777;
     background: linear-gradient(90deg, transparent 42%, #aaa 42% 58%, transparent 58%), linear-gradient(0deg, transparent 42%, #aaa 42% 58%, transparent 58%), #333;
   }
+  /* The window shows 10 seats in two rows of 5 (a "ten-frame"): the first five blue, the second five orange.
+     Passengers fill them in order, so 7 reads as "5 and 2 more"; empty seats are pale. */
   .window {
-    flex: 1; background: linear-gradient(170deg, #e3f1fb, #c4dcee); border-radius: 8px; min-height: 92px; padding: 6px;
-    display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 2px;
+    --seat: 50px; /* the biggest a seat gets; on phones the window's width decides */
+    flex: 1; background: linear-gradient(170deg, #e3f1fb, #c4dcee); border-radius: 8px; padding: 5px;
+    display: grid; grid-template-columns: repeat(5, minmax(0, var(--seat))); gap: 3px; align-content: center; justify-content: center;
     border: 3px solid #0d151d;
+  }
+  .seat {
+    position: relative; aspect-ratio: 1 / 1; display: grid; place-items: center; border-radius: 8px; opacity: .38;
+    background: linear-gradient(#2f6fc4 0 26%, #5a9cec 26%); box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); transition: opacity .3s;
+  }
+  .seat:nth-child(n+6) { background: linear-gradient(#c9621a 0 26%, #f39a4a 26%); }
+  .seat.full { opacity: 1; }
+  /* phones 360px and wider: slimmer doors and a shorter nose leave room for 5 seats across */
+  @media (min-width: 360px) {
+    .train { padding: 15px 58px 40px 10px; gap: 6px; }
+    .door { width: 30px; }
+    .train::after { width: 42px; right: 10px; }
+  }
+  /* narrower phones: the frame turns on its side (two columns of 5) */
+  @media (max-width: 359px) {
+    .window { grid-template-columns: repeat(2, 34px); grid-template-rows: repeat(5, 30px); grid-auto-flow: column; }
+    .seat { aspect-ratio: auto; }
   }
   /* The station in 3D. The stage is turned so the platform runs away to the right; the train (with its roof)
      stands on the far side of the platform edge, and waiting passengers stand at the yellow line, in front of it.
@@ -499,6 +519,10 @@
   .pax.leaving::after { content: "👋"; position: absolute; right: -6px; top: -10px; font-size: 16px; }
   .pax .n { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 6px; }
   .pax.pop { animation: pop .4s ease-out; }
+  /* seated: the face is sized to the seat (about 34px wide on a 390px phone) */
+  .seat .pax { padding: 0; border-radius: 8px; font-size: clamp(20px, calc((100vw - 220px) / 5 * .7), calc(var(--seat) * .66)); }
+  .seat .pax.leaving { background: #fff; box-shadow: 0 0 0 3px var(--bad); }
+  @media (max-width: 359px) { .seat .pax { font-size: 22px; } }
   @keyframes pop { from { transform: scale(0); } 60% { transform: scale(1.3); } to { transform: scale(1); } }
 
   /* a passenger walking between the platform and a train door */
@@ -560,7 +584,7 @@
     #game.screen.active { gap: 8px; padding-block: 10px; }
     .route { height: 46px; }
     .scene { padding-top: 58px; min-height: 0; }
-    .window { min-height: 70px; }
+    .window { --seat: 40px; }
     .stage { --below: 44px; }
     .story { font-size: 17px; }
     .equation { font-size: clamp(36px, 11vw, 60px); }
@@ -1077,7 +1101,7 @@
     applyEnv(isUnderground(S.line, st[S.at]) ? "ug" : "open");
     $("starCount").textContent = "⭐ 0";
     setSign("Start", st[S.at]);
-    $("carriage").innerHTML = "";
+    emptySeats();
     $("platform").innerHTML = `<span class="note">Starting at ${st[S.at]} 🚆</span>`;
     $("train").classList.add("open");
     $("tally").classList.remove("show");
@@ -1362,16 +1386,25 @@
     };
   }
 
-  // Put this question's passengers in the train and on the platform.
+  // The carriage has 10 seats in two rows of 5. Passengers always fill them in order (the first row, then the
+  // second), so the pattern shows "5 and some more" at a glance.
+  function emptySeats() { $("carriage").innerHTML = '<div class="seat"></div>'.repeat(10); }
+  function sit(p) { // the next empty seat
+    const seat = $("carriage").querySelector(".seat:not(.full)");
+    if (seat) { seat.classList.add("full"); seat.appendChild(p); }
+  }
+  function stand(p) { p.parentNode.classList.remove("full"); p.remove(); }
+
+  // Put this question's passengers in the train and on the platform. The ones getting off are the last
+  // ones seated, so the passengers who stay keep a tidy pattern with no gaps.
   function fillScene(q) {
-    const car = $("carriage"), plat = $("platform");
-    car.innerHTML = ""; plat.innerHTML = "";
+    const plat = $("platform");
+    emptySeats(); plat.innerHTML = "";
     if (q.op === "+") {
-      for (let i = 0; i < q.a; i++) car.appendChild(personEl());
+      for (let i = 0; i < q.a; i++) sit(personEl());
       for (let i = 0; i < q.b; i++) plat.appendChild(personEl("board"));
     } else {
-      const idx = shuffle([...Array(q.a).keys()]).slice(0, q.b);
-      for (let i = 0; i < q.a; i++) car.appendChild(personEl(idx.includes(i) ? "leaving" : ""));
+      for (let i = 0; i < q.a; i++) sit(personEl(i >= q.a - q.b ? "leaving" : ""));
       plat.innerHTML = `<span class="note">Platform – mind the gap!</span>`;
     }
   }
@@ -1489,7 +1522,7 @@
     t.classList.toggle("done", !!done);
     t.classList.remove("bump"); void t.offsetWidth; t.classList.add("bump");
   }
-  // Swap the real passenger for an invisible copy so nobody else shifts seats.
+  // Swap a waiting passenger for an invisible copy so nobody else on the platform shifts along.
   function leaveGap(p) {
     const gap = p.cloneNode(true);
     gap.style.visibility = "hidden";
@@ -1524,7 +1557,7 @@
       if (gen !== S.gen) return;
       p.classList.remove("board");
       p.classList.add("pop");
-      $("carriage").appendChild(p);
+      sit(p);
       onIn();
     });
   }
@@ -1537,7 +1570,7 @@
     const exitX = d.x + d.w / 2 < W / 2 ? -r.w - 20 : W + 20;
     const toDoor = slow(500), down = slow(450), away = slow(Math.min(1300, 400 + Math.abs(exitX - doorX) * 3.5));
     const dur = toDoor + down + away;
-    leaveGap(p);
+    stand(p); // the seat turns pale again
     setTimeout(() => gen === S.gen && onOut(), toDoor + down);
     return walk(r, p, [
       [r.x, r.y, 1, 1, 0],
@@ -1555,7 +1588,7 @@
     setTally(`${sign} 0`);
     const group = q.op === "+"
       ? [...$("platform").querySelectorAll(".pax")]
-      : [...$("carriage").querySelectorAll(".pax.leaving")];
+      : [...$("carriage").querySelectorAll(".pax.leaving")].reverse(); // the last seat empties first
     const step = () => { k++; setTally(`${sign} ${k}`); sfx.tick(); say(String(k)); };
     const jobs = [];
     for (const p of group) {
