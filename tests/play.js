@@ -381,7 +381,7 @@ const CHECKS = {
     await p.click('#pickMap .pick-label[data-name="Bishan"]'); await p.waitForSelector('#dirRow:not([hidden])');
     await p.click('#dirRow .psign >> nth=0'); await p.waitForSelector('#picker', { state: 'hidden' });
     await go(p);
-    ok('cab: the station is drawn in 3D', await p.$eval('#stage', e => getComputedStyle(e).transformStyle === 'preserve-3d' && getComputedStyle(e).transform !== 'none'));
+    ok('cab: the station shows the train with 10 seats and its doors', await p.evaluate(() => document.querySelectorAll('#carriage .seat').length === 10 && document.querySelectorAll('#train .door').length === 2));
     await p.waitForFunction(() => /Doors closing/.test(document.getElementById('story').textContent), null, { timeout: 30000 });
     const seen = await p.evaluate(() => new Promise(res => {
       const cab = document.getElementById('cab'), car = document.getElementById('carbox'), out = { max: 0, moved: false, painted: false };
