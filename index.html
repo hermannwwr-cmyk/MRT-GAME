@@ -12,7 +12,7 @@
 <meta name="theme-color" content="#5fb8ff">
 <style>
   :root {
-    --bg: #eaf6ff;
+    --bg: #f1f8ff;
     --ink: #1d2b3a;
     --muted: #5b6b7c;
     --card: #ffffff;
@@ -363,9 +363,9 @@
   .sign-arrow[hidden] { display: none; }
 
   .scene {
-    --sky1: #bfe3ff; --sky2: #e8f5ff;
-    position: relative; overflow: hidden; border-radius: 20px; background: linear-gradient(var(--sky1), var(--sky2) 70%); padding: 80px 10px 0; min-height: 300px;
-    perspective: 640px; perspective-origin: 45% -15%; /* the camera stands on the platform, a little above the train */
+    --sky1: #cfeaff; --sky2: #f6fcff;
+    --sky: 84px; --floor: 86px; --paxh: 70px; --seat: 34px; /* the sky above the train, the platform, a person's height, a seat */
+    position: relative; overflow: hidden; border-radius: 26px; background: linear-gradient(var(--sky1), var(--sky2) 70%); box-shadow: 0 12px 24px -14px rgba(40,70,110,.55);
   }
   /* time of day and weather (set by applyEnv() as data attributes on the scene) */
   .scene[data-time="morning"] { --sky1: #ffd2a8; --sky2: #e3f3ff; }
@@ -377,7 +377,7 @@
   .scene[data-time="night"][data-weather="cloudy"] { --sky1: #141b28; --sky2: #2f3a4d; }
   .scene[data-time="night"][data-weather="rain"], .scene[data-time="night"][data-weather="storm"] { --sky1: #0f141c; --sky2: #27303d; }
   .scene[data-time="night"] .layer { filter: brightness(.42) saturate(.6); }
-  .scene[data-time="night"][data-place="open"] .stage .floor, .scene[data-time="night"][data-place="open"] .stage .trackbed { filter: brightness(.62); }
+  .scene[data-time="night"][data-place="open"] .stage .floor, .scene[data-time="night"][data-place="open"] .stage::before { filter: brightness(.62); }
   .scene[data-time="evening"] .layer { filter: sepia(.25) brightness(.9); }
   .scene[data-weather="rain"] .layer, .scene[data-weather="storm"] .layer { filter: brightness(.78) saturate(.6); }
   .scene[data-time="night"][data-weather="rain"] .layer, .scene[data-time="night"][data-weather="storm"] .layer { filter: brightness(.35) saturate(.5); }
@@ -423,134 +423,105 @@
       #f3f6f9; }
   .scene[data-place="ug"] .indoor { opacity: 1; }
   .env-pill { position: absolute; z-index: 4; top: 8px; left: 8px; background: rgba(255,255,255,.88); border-radius: 999px; padding: 1px 8px; font-size: 15px; line-height: 1.5; box-shadow: 0 2px 0 rgba(0,0,0,.12); pointer-events: none; }
-  /* scenery layers scroll by background-position (set from JS while riding) */
-  .layer { position: absolute; left: 0; right: 0; background-repeat: repeat-x; background-position: 0 100%; pointer-events: none; }
-  .layer.far { top: 0; height: 110px; background-position: 40px 100%; }
-  .layer.far { opacity: .8; }
-  .layer.near { top: 10px; height: 100px; }
-  /* Singapore-style MRT car (generic, no operator branding): white/silver body, dark window band,
-     two stripes in the line colour, full-height double doors, sloped front with a big windscreen. */
+  /* ---- The station, drawn in a storybook style: flat shapes, soft colours, no outlines. The train is seen
+     straight on from the platform; the sky shows above it, with HDB flats and trees peeking over the roof. ---- */
+  .layer { position: absolute; left: 0; right: 0; top: 0; height: var(--sky); background-repeat: repeat-x; background-position: 0 100%; background-size: auto 100%; pointer-events: none; }
+  .layer.far { opacity: .6; background-position: 70px 100%; }
+  .layer.near { height: calc(var(--sky) + 26px); } /* its feet are hidden behind the train */
+  .stage { position: relative; z-index: 1; padding-top: var(--sky); }
+  /* behind the train (seen when it's away): the far wall of the station and the track */
+  .stage::before { content: ""; position: absolute; left: 0; right: 0; top: var(--sky); bottom: var(--floor);
+    background: linear-gradient(#f4f7fa, #f4f7fa) 0 calc(100% - 6px) / 100% 3px no-repeat, linear-gradient(#f4f7fa, #f4f7fa) 0 calc(100% - 15px) / 100% 3px no-repeat,
+      linear-gradient(#d6dde5 0 5px, #e9eff5 5px calc(100% - 24px), #a79d90 calc(100% - 24px)); }
+  .carbox { position: relative; }
+  /* air-conditioning units on the roof */
+  .carbox::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 11px; pointer-events: none;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='116' height='11'%3E%3Crect x='32' width='52' height='16' rx='4' fill='%23cfd7df'/%3E%3C/svg%3E") 50% 0 repeat-x; }
+  /* The train: a cream body with a roof edge, two stripes in the line colour and a grey skirt. The cars behind
+     it run off to the left, so it can drive away to the right. No operator branding. */
   .train {
-    --livery:
-      linear-gradient(to bottom, transparent calc(100% - 34px), var(--line) calc(100% - 34px) calc(100% - 24px),
-        transparent calc(100% - 24px) calc(100% - 20px), var(--line) calc(100% - 20px) calc(100% - 16px), transparent calc(100% - 16px)),
-      linear-gradient(to bottom, transparent 9px, #b4cfe2 9px, #5a7d98 calc(100% - 40px), transparent calc(100% - 40px)),
-      linear-gradient(#fdfdfe, #d9e0e7);
-    position: relative; z-index: 1; margin: 0 auto; width: min(100%, 560px);
-    display: flex; gap: 8px; align-items: stretch;
-    /* headlight, reflections on the window glass, then the paint */
-    background: radial-gradient(circle at calc(100% - 20px) calc(100% - 9px), #fff4b8 0 4px, transparent 5px), repeating-linear-gradient(115deg, transparent 0 46px, rgba(255,255,255,.32) 46px 56px, transparent 56px 66px, rgba(255,255,255,.16) 66px 70px, transparent 70px 130px), var(--livery);
-    background-size: auto, 100% calc(100% - 49px), auto, auto, auto;
-    background-position: 0 0, 0 9px, 0 0, 0 0, 0 0;
-    background-repeat: no-repeat;
-    border-radius: 10px 84px 12px 0; padding: 15px 74px 40px 12px;
-    box-shadow: inset 0 -5px 0 #8f9ba7, inset 0 2px 0 rgba(255,255,255,.9), 0 4px 0 rgba(0,0,0,.12);
+    position: relative; display: flex; justify-content: center; align-items: stretch; gap: 8px;
+    margin-left: -700px; padding: 12px 0 24px 700px;
+    background:
+      var(--cars) 0 0 / 696px 100% no-repeat,
+      linear-gradient(var(--line), var(--line)) 0 calc(100% - 16px) / 100% 9px no-repeat,
+      linear-gradient(rgba(251,250,245,.45), rgba(251,250,245,.45)) 0 calc(100% - 10px) / 100% 3px no-repeat,
+      linear-gradient(var(--line), var(--line)) 0 calc(100% - 10px) / 100% 3px no-repeat,
+      linear-gradient(var(--skirt), var(--skirt)) 0 100% / 100% 12px no-repeat,
+      linear-gradient(var(--roof), var(--roof)) 0 0 / 100% 5px no-repeat,
+      var(--body);
   }
-  /* the car in front of it: same livery, just past a narrow gangway gap, running off the left edge */
-  .train::before {
-    content: ""; position: absolute; top: 0; bottom: 0; right: calc(100% + 6px); width: 600px;
-    background: var(--livery); border-radius: 10px 0 0 0; box-shadow: inset 0 -5px 0 #8f9ba7;
+  .scene { --body: #fbfaf5; --roof: #e1e6ec; --skirt: #e6e9ee; --leaf: #eef2f5; }
+  .scene[data-time="night"][data-place="open"] { --body: #cfd5e0; --roof: #b3bcc9; --skirt: #b9c0cc; --leaf: #c6cdd9; } /* the train in the dark */
+  /* wider phones show the driver's end: a rounded nose with a windscreen and a headlight, and the gap to the next car */
+  @media (min-width: 372px) {
+    .train { margin-right: 8px; padding-right: 62px; border-radius: 0 44px 0 0 / 0 52px 0 0; }
+    .train::after { content: ""; position: absolute; right: 9px; top: 14px; width: 34px; height: 40px; border-radius: 4px 26px 4px 4px;
+      background: linear-gradient(115deg, rgba(255,255,255,.5) 0 22%, transparent 22%), #b9dcee; }
+    .train::before { content: ""; position: absolute; left: 704px; top: 5px; bottom: 0; width: 5px; background: rgba(154,166,178,.7); }
+    .carbox::after { content: ""; position: absolute; right: 15px; bottom: 32px; width: 9px; height: 9px; border-radius: 50%; background: #ffe27a; }
   }
-  /* windscreen on the sloped front */
-  .train::after {
-    content: ""; position: absolute; right: 12px; top: 9px; width: 56px; bottom: 40px;
-    background: linear-gradient(150deg, rgba(255,255,255,.55) 0 14%, transparent 14% 24%, rgba(255,255,255,.25) 24% 29%, transparent 29%), linear-gradient(#9cbdd5, #3d5c74); border-radius: 8px 70px 6px 8px;
-  }
-  /* full-height double sliding doors that open to the dark inside */
-  .door { position: relative; flex: none; width: 36px; margin: -6px 0 -30px; border-radius: 4px; background: #0d151d; overflow: hidden; box-shadow: 0 0 0 2px #a7b2bd; }
-  .door i { position: absolute; top: 0; bottom: 0; width: 50%; background: linear-gradient(#f6f8fa, #d6dde4); border: 1px solid #a7b2bd; transition: transform .6s ease-in-out; }
-  .door i:first-child { left: 0; }
+  /* full-height double sliding doors that open to the inside */
+  .door { position: relative; flex: none; width: 30px; margin: -4px 0 -24px; border-radius: 5px; overflow: hidden;
+    background: linear-gradient(90deg, transparent 44%, #f2c94c 44% 56%, transparent 56%), linear-gradient(#66768f, #8c9bb1); /* inside: a yellow grab pole */ box-shadow: 0 0 0 1.5px #bcc7d2; }
+  .door i { position: absolute; top: 0; bottom: 0; width: 50%; background: var(--leaf); transition: transform .6s ease-in-out; }
+  .door i:first-child { left: 0; box-shadow: inset -1px 0 0 #bcc7d2; }
   .door i:last-child { right: 0; }
-  .door i::after { content: ""; position: absolute; left: 3px; right: 3px; top: 7px; height: 40%; border-radius: 3px;
-    background: linear-gradient(115deg, transparent 0 30%, rgba(255,255,255,.35) 30% 45%, transparent 45%), linear-gradient(#b4cfe2, #5a7d98); }
+  .door i::after { content: ""; position: absolute; left: 3px; right: 2.5px; top: 9px; height: 38px; border-radius: 4px; background: #bcdaec; }
   .train.open .door i:first-child { transform: translateX(-100%); }
   .train.open .door i:last-child { transform: translateX(100%); }
-  /* wheels in two bogies, like a real car */
-  .wheels { display: flex; gap: 6px; width: min(100%, 560px); margin: -8px auto 0; padding: 0 56px 0 30px; position: relative; z-index: 2; }
-  .wheels i:nth-child(2) { margin-right: auto; }
-  /* equipment boxes under the floor, between the bogies (and under the car in front) */
-  .wheels::before { content: ""; position: absolute; z-index: -1; left: -620px; right: 34px; top: 5px; height: 15px; border-radius: 0 0 5px 5px;
-    background: repeating-linear-gradient(90deg, #2b343d 0 52px, #48535e 52px 55px, #353f49 55px 96px, #48535e 96px 99px); box-shadow: inset 0 3px 0 rgba(255,255,255,.08); }
-  .wheels i {
-    width: 26px; height: 26px; border-radius: 50%; border: 5px solid #777;
-    background: linear-gradient(90deg, transparent 42%, #aaa 42% 58%, transparent 58%), linear-gradient(0deg, transparent 42%, #aaa 42% 58%, transparent 58%), #333;
-  }
   /* The window shows 10 seats in two rows of 5 (a "ten-frame"): the first five blue, the second five orange.
      Passengers fill them in order, so 7 reads as "5 and 2 more"; empty seats are pale. */
   .window {
-    --seat: 50px; /* the biggest a seat gets; on phones the window's width decides */
-    flex: 1; background: linear-gradient(170deg, #e3f1fb, #c4dcee); border-radius: 8px; padding: 5px;
-    display: grid; grid-template-columns: repeat(5, minmax(0, var(--seat))); gap: 3px; align-content: center; justify-content: center;
-    border: 3px solid #0d151d;
+    flex: none; display: grid; grid-template-columns: repeat(5, var(--seat)); gap: 4px; padding: 4px 6px; border-radius: 13px; border: 3.5px solid #3a4758;
+    background: linear-gradient(108deg, transparent 0 7%, rgba(255,255,255,.4) 7% 17%, transparent 17% 22%, rgba(255,255,255,.4) 22% 26%, transparent 26%), #dbeffb;
   }
-  .seat {
-    position: relative; aspect-ratio: 1 / 1; display: grid; place-items: center; border-radius: 8px; opacity: .38;
-    background: linear-gradient(#2f6fc4 0 26%, #5a9cec 26%); box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); transition: opacity .3s;
-  }
-  .seat:nth-child(n+6) { background: linear-gradient(#c9621a 0 26%, #f39a4a 26%); }
-  .seat.full { opacity: 1; }
-  /* at night the carriage lights are on: warm windows that glow */
-  .scene[data-time="night"] .window { background: linear-gradient(170deg, #fff6da, #f3e1b0); box-shadow: 0 0 16px 3px rgba(255,236,170,.6); }
-  .scene[data-time="night"] .door { box-shadow: 0 0 0 2px #a7b2bd, 0 0 10px 1px rgba(255,236,170,.35); }
-  /* phones 360px and wider: slimmer doors and a shorter nose leave room for 5 seats across */
-  @media (min-width: 360px) {
-    .train { padding: 15px 58px 40px 10px; gap: 6px; }
-    .door { width: 30px; }
-    .train::after { width: 42px; right: 10px; }
-  }
-  /* narrower phones: the frame turns on its side (two columns of 5) */
-  @media (max-width: 359px) {
-    .window { grid-template-columns: repeat(2, 34px); grid-template-rows: repeat(5, 30px); grid-auto-flow: column; }
-    .seat { aspect-ratio: auto; }
-  }
-  /* The station in 3D. The stage is turned so the platform runs away to the right; the train (with its roof)
-     stands on the far side of the platform edge, and waiting passengers stand at the yellow line, in front of it.
-     Rides slide #carbox out to the right and in from the left. */
-  .stage { --below: 56px; position: relative; z-index: 1; padding-bottom: var(--below); transform-style: preserve-3d; transform: translateZ(-80px) rotateY(26deg); transform-origin: 40% 50%; }
-  .carbox { position: relative; transform-style: preserve-3d; }
-  .carbox .roof { position: absolute; left: calc(50% - min(50%, 280px) - 610px); right: calc(50% - min(50%, 280px) + 64px); top: 0; height: 64px; transform-origin: top; transform: rotateX(-90deg); border-radius: 0 0 8px 8px;
-    background: repeating-linear-gradient(90deg, transparent 0 40px, rgba(60,75,90,.16) 40px 150px, transparent 150px 170px) 0 14px / auto 30px no-repeat, linear-gradient(#eef2f5, #c2cbd3); }
-  .stage .floor { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below) - 30px); height: 320px; transform-origin: top; transform: translateZ(8px) rotateX(90deg); pointer-events: none;
+  .seat { --back: #c9def5; --pad: #e3eefb; position: relative; aspect-ratio: 1 / 1; border-radius: 8px; background: var(--back); }
+  .seat::before { content: ""; position: absolute; inset: 27% 7% 6%; border-radius: 6px; background: var(--pad); }
+  .seat:nth-child(n+6) { --back: #f8d9bd; --pad: #fdeee0; }
+  .seat.full { --back: #5f9be0; --pad: #8ec0f2; }
+  .seat.full:nth-child(n+6) { --back: #e99555; --pad: #f7b984; }
+  /* at night the carriage lights are on: a warm window that glows */
+  .scene[data-time="night"] .window { background-color: #fff3cf; box-shadow: 0 0 16px 3px rgba(255,236,170,.6); }
+  /* the platform: a studded yellow safety line, then tiles drawn in perspective (--tiles, from paintScenery()) */
+  .stage .floor { display: block; position: relative; height: var(--floor); pointer-events: none;
     background:
-      radial-gradient(circle, rgba(150,100,0,.5) 1.1px, transparent 1.5px) 0 0 / 6px 4.5px repeat-x,
-      radial-gradient(circle, rgba(150,100,0,.5) 1.1px, transparent 1.5px) 3px 4.5px / 6px 4.5px repeat-x,
-      linear-gradient(#f2c94c 0 9px, #f4f7f9 9px 12px, transparent 12px),
-      linear-gradient(rgba(20,30,45,.2), rgba(20,30,45,0) 54px),
-      repeating-linear-gradient(0deg, transparent 0 62px, #b4bfca 62px 64px),
-      repeating-linear-gradient(90deg, var(--platform) 0 46px, #b4bfca 46px 48px), var(--platform); }
-  /* the track behind the platform edge (seen while the train is away) */
-  .stage .trackbed { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below)); height: 150px; transform-origin: top; transform: rotateX(-90deg); pointer-events: none;
-    background: linear-gradient(transparent 26px, #c3ccd4 26px 29px, transparent 29px 66px, #c3ccd4 66px 69px, transparent 69px), repeating-linear-gradient(90deg, #6e5e4e 0 10px, #8a7a68 10px 26px), #7d6d5c; }
-  .stage .edge { position: absolute; left: -500px; right: -500px; top: calc(100% - var(--below) - 30px); height: 30px; transform: translateZ(8px); pointer-events: none; background: linear-gradient(#7d8791, #5b646d); }
-  .platform { position: absolute; left: 0; right: 0; bottom: var(--below); height: 70px; display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; align-content: flex-end; transform: translateY(-30px) translateZ(64px); }
-  .platform .note { color: var(--muted); font-size: 15px; }
+      radial-gradient(circle, #d9a520 1.2px, transparent 1.6px) 0 0.4px / 7px 4.5px repeat-x,
+      radial-gradient(circle, #d9a520 1.2px, transparent 1.6px) 3.5px 4.6px / 7px 4.5px repeat-x,
+      linear-gradient(#f6cf4f 0 9px, transparent 9px),
+      linear-gradient(rgba(29,43,74,.2), rgba(29,43,74,0)) 0 9px / 100% 16px no-repeat,
+      var(--tiles) 0 9px / 100% calc(100% - 9px) no-repeat, #e7edf3; }
+  .platform { position: absolute; z-index: 1; left: 0; right: 0; bottom: 8px; height: var(--paxh); padding: 0 8px; display: flex; justify-content: center; align-items: flex-end; }
+  .platform .note { align-self: center; color: var(--muted); font-size: 15px; line-height: 1.3; text-align: center; }
   .cab { position: absolute; inset: 0; z-index: 3; width: 100%; height: 100%; opacity: 0; pointer-events: none; }
 
-  .pax {
-    position: relative; font-size: clamp(24px, 6vw, 34px); line-height: 1; padding: 2px; border-radius: 10px;
-    background: none; transition: transform .5s, opacity .5s;
-  }
-  .pax.board { background: #fff2b3; box-shadow: 0 0 0 3px #f2c94c inset; }
-  .pax.leaving { background: #ffd9d4; box-shadow: 0 0 0 3px var(--bad) inset; }
-  .pax.leaving::after { content: "👋"; position: absolute; right: -6px; top: -10px; font-size: 16px; }
-  .pax .n { position: absolute; left: 50%; top: -12px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; font-size: 13px; padding: 1px 6px; }
+  /* Passengers are drawn people (personEl()): each button holds a head-and-shoulders picture for a seat
+     and a whole body for the platform, and shows the one that fits where it is. */
+  .pax { position: relative; padding: 0; background: none; border-radius: 8px; line-height: 0; }
+  .pax svg { display: block; pointer-events: none; overflow: visible; }
+  .seat .pax { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .seat .pax .bust { width: 100%; height: 100%; }
+  .seat .pax .body, .platform .pax .bust { display: none; }
+  .pax .body { flex: none; height: var(--paxh); width: calc(var(--paxh) * 36 / 70); }
+  .platform .pax { flex: 0 1 calc(var(--paxh) * .56); min-width: 0; height: var(--paxh); display: flex; justify-content: center; }
+  /* someone waiting to get on stands in a pool of yellow light, with a shadow at their feet */
+  .platform .pax::before { content: ""; position: absolute; z-index: -1; left: 50%; bottom: -4px; width: calc(var(--paxh) * .64); height: 13px; margin-left: calc(var(--paxh) * -.32); border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(0,0,0,.24) 0 50%, rgba(255,226,122,.9) 52% 100%); }
+  .seat .pax.leaving { background: rgba(255,255,255,.6); box-shadow: 0 0 0 3px var(--bad); }
+  .pax.leaving::after { content: "👋"; position: absolute; right: -6px; top: -8px; font-size: 16px; line-height: 1; }
+  .pax .n { position: absolute; z-index: 1; left: 50%; top: -12px; transform: translateX(-50%); background: var(--ink); color: #fff; border-radius: 10px; font-size: 13px; line-height: 1.2; padding: 1px 6px; }
   .pax.pop { animation: pop .4s ease-out; }
-  .platform .pax::before, .walker:not(.bye)::before { content: ""; position: absolute; z-index: -1; left: 10%; right: 10%; bottom: -5px; height: 8px; border-radius: 50%; background: rgba(0,0,0,.22); }
-  /* seated: the face is sized to the seat (about 34px wide on a 390px phone) */
-  .seat .pax { padding: 0; border-radius: 8px; font-size: clamp(20px, calc((100vw - 220px) / 5 * .7), calc(var(--seat) * .66)); }
-  .seat .pax.leaving { background: #fff; box-shadow: 0 0 0 3px var(--bad); }
-  @media (max-width: 359px) { .seat .pax { font-size: 22px; } }
   @keyframes pop { from { transform: scale(0); } 60% { transform: scale(1.3); } to { transform: scale(1); } }
 
   /* a passenger walking between the platform and a train door */
-  .walker { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; line-height: 1; pointer-events: none; }
-  .walker span { display: inline-block; animation: waddle .26s ease-in-out infinite alternate; }
-  .walker.bye::after { content: "👋"; position: absolute; right: -10px; top: -12px; font-size: 16px; }
-  @keyframes waddle { from { transform: rotate(-8deg) translateY(0); } to { transform: rotate(8deg) translateY(-5px); } }
+  .walker { position: absolute; z-index: 2; pointer-events: none; transform-origin: 50% 100%; }
+  .walker svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 100%; animation: waddle .26s ease-in-out infinite alternate; }
+  .walker.bye::after { content: "👋"; position: absolute; right: -8px; top: -4px; font-size: 16px; line-height: 1; }
+  @keyframes waddle { from { transform: rotate(-6deg); } to { transform: rotate(6deg) translateY(-3px); } }
 
   /* running count above the train while people get on/off */
   .tally {
-    position: absolute; z-index: 2; top: 10px; left: 50%; transform: translateX(-50%);
+    position: absolute; z-index: 2; top: 6px; left: 50%; transform: translateX(-50%);
     background: #fff; color: var(--line); border-radius: 999px; padding: 4px 20px; font-size: 30px; font-weight: bold;
     box-shadow: var(--shadow); opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap;
   }
@@ -579,9 +550,9 @@
   .answers { min-height: 86px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .ans {
     background: var(--card); border-radius: 22px; font-size: clamp(40px, 12vw, 60px); font-weight: bold;
-    padding: 10px 0; box-shadow: 0 6px 0 rgba(0,0,0,.18); border: 4px solid var(--line);
+    padding: 10px 0; color: #24364b; border: 4px solid transparent; box-shadow: 0 6px 0 #d3deea, 0 16px 20px -12px rgba(40,70,110,.5);
   }
-  .ans:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(0,0,0,.18); }
+  .ans:active { transform: translateY(4px); box-shadow: 0 2px 0 #d3deea; }
   .ans.wrong { background: #ffe1dd; border-color: var(--bad); opacity: .5; animation: shake .4s; }
   .ans.right { background: #d9f7e1; border-color: var(--good); }
   @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)} }
@@ -607,19 +578,20 @@
   @media (max-height: 700px) {
     #game.screen.active { gap: 8px; padding-block: 10px; }
     .route { height: 46px; }
-    .scene { padding-top: 58px; min-height: 0; }
-    .window { --seat: 40px; }
+    .scene { --sky: 46px; --floor: 64px; --paxh: 60px; --seat: 32px; }
+    .tally { top: 4px; font-size: 24px; padding: 3px 16px; }
     .big-emoji { font-size: 64px; }
-    .stage { --below: 44px; }
     .story { font-size: 17px; }
     .equation { font-size: clamp(36px, 11vw, 60px); }
     .ans { font-size: clamp(34px, 10vw, 52px); padding: 6px 0; }
   }
 
+  @media (min-width: 600px) and (min-height: 701px) { .scene { --sky: 104px; --floor: 104px; --paxh: 86px; --seat: 46px; } }
+
   @media (prefers-reduced-motion: reduce) {
     body[data-screen="home"]::before { animation: none; }
     .pax, .door i { transition: none; }
-    .walker span, .pax.pop, .tally.bump, .sitem, .here-ring, .sky-clouds, .rain, .sleep-train i, .screen.active, .end-stars span, .stars.bump { animation: none; }
+    .walker svg, .pax.pop, .tally.bump, .sitem, .here-ring, .sky-clouds, .rain, .sleep-train i, .screen.active, .end-stars span, .stars.bump { animation: none; }
     .sleep-train i { opacity: .8; }
     .big-emoji, .confetti, .mini-train, .start-train, .start-train.leaving, .start-train.swapping, .signal.green .lamp-go, .signal.go .lamp-go, .signal.nudge, .st-car, .st-wheels i, .start-hint span { animation: none !important; }
   }
@@ -696,18 +668,16 @@
     <div class="flash" aria-hidden="true"></div>
     <div class="env-pill" id="envPill"></div>
     <div class="stops-pill" id="stopsPill" hidden></div>
-    <!-- the station in 3D: the train (side, roof, wheels) and the platform floor, seen from along the platform -->
+    <!-- the station: the train (doors and a window of seats) at the platform, seen straight on -->
     <div class="stage" id="stage">
       <div class="carbox" id="carbox">
-        <i class="roof" aria-hidden="true"></i>
         <div class="train open" id="train">
           <div class="door"><i></i><i></i></div>
           <div class="window" id="carriage"></div>
           <div class="door"><i></i><i></i></div>
         </div>
-        <div class="wheels" id="wheels"><i></i><i></i><i></i><i></i></div>
       </div>
-      <i class="trackbed" aria-hidden="true"></i><i class="edge" aria-hidden="true"></i><i class="floor" aria-hidden="true"></i>
+      <i class="floor" aria-hidden="true"></i>
       <div class="platform" id="platform"></div>
     </div>
     <div class="tally" id="tally"></div>
@@ -813,7 +783,6 @@
   // STOPS[name] = every line (and index) that stops there, so interchanges are easy to find.
   const STOPS = {};
   LINES.forEach(L => L.stations.forEach((n, i) => (STOPS[n] ??= []).push({ L, i })));
-  const PEOPLE = ["🧑","👩","👨","🧒","👧","👦","👵","👴","🧕","👱","🧔","👩‍🦱","👨‍🦳","🧑‍🦰"];
   const CHEERS = ["Great job!", "Well done!", "Super!", "You got it!", "Shiok!", "Awesome!", "Fantastic!"];
 
   const $ = id => document.getElementById(id);
@@ -1012,29 +981,34 @@
   // ---- scenery art: simple SVG tiles that repeat sideways ----
   const svgUrl = svg => `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
   (function paintScenery() {
-    // far: a pale skyline, as if seen through haze
+    // far: pale blocks in the distance
     let city = "";
-    [[0,34,62],[38,26,40],[68,40,80],[112,30,52],[146,22,96],[172,38,58],[214,28,74],[246,44,46],[294,30,88],[328,30,54]].forEach(([x, w, h]) => {
-      city += `<rect x="${x}" y="${110 - h}" width="${w}" height="${h}" rx="2" fill="#b7cde2"/>`;
-      for (let y = 110 - h + 8; y < 104; y += 12) for (let wx = x + 5; wx < x + w - 6; wx += 9) city += `<rect x="${wx}" y="${y}" width="5" height="6" fill="#d3e3f1"/>`;
-    });
-    $("layerFar").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="360" height="110">${city}</svg>`);
-    // near: HDB flats (cream walls, a coloured roof band, rows of windows, a void deck) with trees in front
+    [[0, 30, 66], [40, 26, 50], [78, 34, 78], [124, 28, 58], [166, 32, 72], [212, 26, 46], [250, 30, 62]].forEach(([x, w, h]) => { city += `<rect x="${x}" y="${84 - h}" width="${w}" height="${h}" rx="4" fill="#c3d9ee"/>`; });
+    $("layerFar").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="290" height="84">${city}</svg>`);
+    // near: pastel HDB flats (a coloured roof band, rows of little windows) with round trees between them
     let town = "";
-    const roofs = ["#e07a5f", "#5fa8d3", "#f2c94c", "#81b29a", "#b388eb"];
-    [[6, 44, 78], [60, 34, 56], [104, 50, 90], [166, 34, 64], [210, 46, 82], [268, 36, 52], [314, 42, 72]].forEach(([x, w, h], i) => {
-      const top = 100 - h;
-      town += `<rect x="${x}" y="${top}" width="${w}" height="${h}" fill="#f6f1e8" stroke="#d9d0c1" stroke-width=".8"/>`;
-      town += `<rect x="${x + w - 7}" y="${top}" width="7" height="${h}" fill="#e6dfd2"/>`; // a side in shade
-      town += `<rect x="${x - 1}" y="${top - 3}" width="${w + 2}" height="5" rx="1" fill="${roofs[i % 5]}"/>`;
-      for (let y = top + 7; y < 88; y += 7) town += `<rect x="${x + 3}" y="${y}" width="${w - 13}" height="3" rx=".5" fill="#c1d5e5"/>`;
-      town += `<rect x="${x}" y="90" width="${w}" height="10" fill="#d8cfc0"/>`;
-      for (let px = x + 4; px < x + w - 3; px += 8) town += `<rect x="${px}" y="90" width="2" height="10" fill="#bfb4a3"/>`;
+    const walls = ["#fde3d0", "#dcedf8", "#fbeab9", "#e5def6", "#d6f0e1"], roofs = ["#f08a6e", "#6fb0de", "#e9b730", "#a48be0", "#63b98d"];
+    [58, 42, 72, 50, 66, 40, 76, 54].forEach((h, i) => {
+      const x = 4 + i * 46, w = 37, y = 84 - h;
+      town += `<rect x="${x}" y="${y}" width="${w}" height="${h + 4}" rx="4" fill="${walls[i % 5]}"/><rect x="${x - 1.5}" y="${y - 3}" width="${w + 3}" height="6" rx="3" fill="${roofs[i % 5]}"/>`;
+      for (let yy = y + 9; yy < 78; yy += 10) for (let xx = x + 5; xx < x + w - 6; xx += 9) town += `<rect x="${xx}" y="${yy}" width="5.5" height="5.5" rx="1.5" fill="#fff" opacity=".75"/>`;
     });
-    [[30, 11], [94, 9], [150, 12], [198, 9], [254, 11], [304, 9], [352, 10]].forEach(([x, r]) => {
-      town += `<rect x="${x - 1.5}" y="${92 - r}" width="3" height="${r + 8}" fill="#7a5a3a"/><circle cx="${x}" cy="${92 - r}" r="${r}" fill="#4caf50"/><circle cx="${x - r * .3}" cy="${89 - r}" r="${r * .6}" fill="#66bb6a"/>`;
+    [[46, 11], [138, 13], [230, 11], [322, 12]].forEach(([x, r]) => {
+      town += `<rect x="${x - 2}" y="62" width="4" height="22" fill="#8a6a48"/><circle cx="${x}" cy="${60 - r * .2}" r="${r}" fill="#8fd3a0"/><circle cx="${x - 3.5}" cy="${57 - r * .2}" r="${r * .48}" fill="#fff" opacity=".28"/>`;
     });
-    $("layerNear").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="370" height="100">${town}</svg>`);
+    $("layerNear").style.backgroundImage = svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="368" height="84">${town}</svg>`);
+    // the cars behind ours (they show when the train drives off): windows and doors on the long body
+    let cars = "";
+    [8, 352].forEach(x => {
+      cars += `<rect x="${x + 4}" y="4" width="5" height="96" fill="#9aa6b2" opacity=".7"/>`;
+      [x + 22, x + 266].forEach(d => { cars += `<rect x="${d}" y="7" width="30" height="93" rx="5" fill="#eef2f5" stroke="#bcc7d2" stroke-width="1.5"/><path d="M ${d + 15},8 V 100" stroke="#bcc7d2" stroke-width="1.2"/><rect x="${d + 3.5}" y="15" width="9" height="34" rx="4" fill="#bcdaec"/><rect x="${d + 17.5}" y="15" width="9" height="34" rx="4" fill="#bcdaec"/>`; });
+      cars += `<rect x="${x + 62}" y="12" width="194" height="60" rx="12" fill="#dbeffb" stroke="#3a4758" stroke-width="3.5"/><path d="M ${x + 78},14 h 18 l -18,56 h -18 z" fill="#fff" opacity=".45"/>`;
+    });
+    document.documentElement.style.setProperty("--cars", svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 696 100" preserveAspectRatio="none">${cars}</svg>`));
+    // the platform's tiles: joints that fan out towards us
+    let tiles = "";
+    for (let k = -7; k <= 7; k++) tiles += `<path d="M ${200 + k * 44 + 22},0 L ${200 + (k * 44 + 22) * 1.55},100"/>`;
+    document.documentElement.style.setProperty("--tiles", svgUrl(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" preserveAspectRatio="none"><g stroke="#d2dbe5" stroke-width="1.6" fill="none" vector-effect="non-scaling-stroke">${tiles}<path d="M 0,34 H 400 M 0,76 H 400"/></g></svg>`));
   })();
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -1195,10 +1169,58 @@
     $("routeMarker").style.left = routeX(w, pos) + "%";
   }
 
+  // ---- the passengers: a cast of drawn people (storybook style: round heads, dot eyes, rosy cheeks) ----
+  const SKIN = ["#f8d6b8", "#ecbd94", "#d59c6c", "#b0764a", "#8a5533"];
+  // each: skin tone, hair style, hair (or headscarf) colour, top, trousers, extras ("g" glasses, "k" a kid)
+  const CAST = [
+    [1, "short", "#2b2320", "#4f8fe0", "#39465e"], [0, "bob", "#4a3223", "#f27d8a", "#5b6b8a"], [3, "curly", "#1e1714", "#f2c94c", "#39465e"],
+    [2, "hijab", "#7a5cc2", "#9a82d8", "#4b3f78"], [0, "granny", "#cfd2d8", "#59b38a", "#6b5a4a", "g"], [1, "pigtails", "#2b2320", "#ff9f43", "#3f7fd0", "k"],
+    [4, "short", "#17120f", "#e2574c", "#39465e"], [1, "grandpa", "#d8dbe0", "#6c8ea6", "#4a4f5a", "g"], [2, "bun", "#2b2320", "#3aa76d", "#39465e"],
+    [0, "cap", "#5a3d2b", "#4a6fd6", "#7a5a3a", "k"], [3, "bob", "#231a15", "#2bb3a3", "#4a4f5a"], [0, "short", "#b5651d", "#8e6fd1", "#39465e", "g"],
+    [4, "bun", "#17120f", "#ff8fab", "#5b6b8a"], [2, "short", "#2b2320", "#f2994a", "#39465e", "k"], [1, "hijab", "#2f9e8f", "#56c2b3", "#3b6e68"], [3, "pigtails", "#1e1714", "#e76f51", "#7a5a3a", "k"],
+  ];
+  function headSVG(c) { // drawn around (0, 0), 10 units in radius
+    const sk = SKIN[c[0]], h = c[1], hc = c[2];
+    const top = `<path d="M -10.4,-1 C -11.2,-9 -6,-12.6 0,-12.6 C 6,-12.6 11.2,-9 10.4,-1 C 8,-5.6 3,-7.2 -2,-6.5 C -5.5,-6 -8.4,-4.4 -10.4,-1 Z" fill="${hc}"/>`;
+    let back = "", front = top, face = `<circle r="10" fill="${sk}"/>`, my = 4.8;
+    if (h === "bob") back = `<rect x="-12.2" y="-12" width="24.4" height="25" rx="10.5" fill="${hc}"/>`;
+    if (h === "pigtails") back = `<circle cx="-12.6" cy="3" r="4.6" fill="${hc}"/><circle cx="12.6" cy="3" r="4.6" fill="${hc}"/>`;
+    if (h === "bun" || h === "granny") back = `<circle cx="0" cy="-13.4" r="5.2" fill="${hc}"/>`;
+    if (h === "curly") { back = `<circle cx="0" cy="-2.5" r="13.6" fill="${hc}"/>`; front = `<circle cx="-6" cy="-8" r="4.6" fill="${hc}"/><circle cx="0" cy="-9.8" r="5" fill="${hc}"/><circle cx="6" cy="-8" r="4.6" fill="${hc}"/>`; }
+    if (h === "grandpa") { front = `<circle cx="-9.4" cy="-2.5" r="3.2" fill="${hc}"/><circle cx="9.4" cy="-2.5" r="3.2" fill="${hc}"/><path d="M -3.8,4 Q 0,2 3.8,4 Q 0,6 -3.8,4 Z" fill="${hc}"/>`; my = 6.2; }
+    if (h === "hijab") { back = `<path d="M -12.6,-2 C -12.6,-14 12.6,-14 12.6,-2 C 13.4,9 9,16 0,16.5 C -9,16 -13.4,9 -12.6,-2 Z" fill="${hc}"/>`; face = `<ellipse cx="0" cy="0.8" rx="7.6" ry="8.3" fill="${sk}"/>`; front = ""; }
+    if (h === "cap") front = top + `<path d="M -10.7,-3.2 C -10.7,-14 10.7,-14 10.7,-3.2 Z" fill="#e2574c"/><path d="M 3,-4.6 Q 14.5,-5 15.6,-1.4 Q 9,-3 3,-2.6 Z" fill="#e2574c"/>`;
+    const eyes = `<circle cx="-3.6" cy="0.8" r="1.35" fill="#2a2a33"/><circle cx="3.6" cy="0.8" r="1.35" fill="#2a2a33"/>`;
+    const mouth = `<path d="M -3,${my} Q 0,${my + 2.9} 3,${my}" stroke="#8a3b2e" stroke-width="1.3" stroke-linecap="round" fill="none"/>`;
+    const cheeks = `<circle cx="-6.4" cy="3.9" r="1.9" fill="#ff8a8a" opacity=".5"/><circle cx="6.4" cy="3.9" r="1.9" fill="#ff8a8a" opacity=".5"/>`;
+    const glasses = c[5] === "g" ? `<g fill="rgba(255,255,255,.3)" stroke="#3b3b45" stroke-width=".9"><circle cx="-3.7" cy="0.8" r="3.2"/><circle cx="3.7" cy="0.8" r="3.2"/><path d="M -.5,.8 H .5"/></g>` : "";
+    return back + face + front + eyes + mouth + cheeks + glasses;
+  }
+  // head and shoulders, for a seat
+  function bustSVG(i) {
+    const c = CAST[i];
+    return `<svg class="bust" viewBox="-17 -17 34 34" aria-hidden="true"><path d="M -13,17 Q -13,6 -5,5 L 5,5 Q 13,6 13,17 Z" fill="${c[3]}"/><rect x="-3" y="1" width="6" height="6" fill="${SKIN[c[0]]}"/><g transform="translate(0 -4)">${headSVG(c)}</g></svg>`;
+  }
+  // a whole person, feet at the bottom of the picture (kids are smaller)
+  function bodySVG(i) {
+    const c = CAST[i], sk = SKIN[c[0]];
+    const arm = (sx, d) => `<path d="${d}" stroke="${c[3]}" stroke-width="5.4" stroke-linecap="round" fill="none"/><circle cx="${sx * 12.6}" cy="-21" r="2.8" fill="${sk}"/>`;
+    return `<svg class="body" viewBox="-18 -67 36 70" aria-hidden="true"><g transform="scale(${c[5] === "k" ? .82 : 1})">`
+      + `<ellipse cx="-4.8" cy="-1.2" rx="4.8" ry="2.5" fill="#2b3340"/><ellipse cx="4.8" cy="-1.2" rx="4.8" ry="2.5" fill="#2b3340"/>`
+      + `<rect x="-7.2" y="-19" width="6.2" height="18" rx="3" fill="${c[4]}"/><rect x="1" y="-19" width="6.2" height="18" rx="3" fill="${c[4]}"/>`
+      + arm(-1, "M -9,-36 Q -14,-30 -12.6,-22") + arm(1, "M 9,-36 Q 14,-30 12.6,-22")
+      + `<path d="M -10,-17 Q -11.5,-37 -6,-40 L 6,-40 Q 11.5,-37 10,-17 Z" fill="${c[3]}"/><rect x="-3" y="-44" width="6" height="6" fill="${sk}"/>`
+      + `<g transform="translate(0 -51)">${headSVG(c)}</g></g></svg>`;
+  }
+  // A passenger button. People are dealt from a shuffled pack, so the same person isn't on the train twice.
+  let pack = [];
   function personEl(cls) {
     const s = document.createElement("button");
+    if (!pack.length) pack = shuffle([...CAST.keys()]);
+    const i = pack.pop();
     s.className = "pax" + (cls ? " " + cls : "");
-    s.textContent = s.dataset.face = pick(PEOPLE);
+    s.dataset.face = i;
+    s.innerHTML = bustSVG(i) + bodySVG(i);
     s.onclick = () => countTap(s);
     return s;
   }
@@ -1242,7 +1264,7 @@
   // (tunnel or open track, by the two stations), then the train pulls in from the left and stops.
   // The cab view covers the middle, which is where the next passengers and the next place are swapped in.
   function ride(onMid, onDone) {
-    const scene = $("scene"), cab = $("cab"), car = $("carbox"), train = $("train"), wheels = [...$("wheels").children];
+    const scene = $("scene"), cab = $("cab"), car = $("carbox"), train = $("train");
     const T = reduceMotion ? 900 : 4400;
     const from = S.at, dir = S.dir, next = S.line.stations[from + dir];
     const view = cabView(cab, scene.dataset.place === "ug", isUnderground(S.line, next), next);
@@ -1259,8 +1281,6 @@
       const p = Math.min(1, (ts - start) / T), v = speed(p);
       dist += v * (ts - last) / 1000; last = ts;
       car.style.transform = `translateX(${p < OUT ? SLIDE * (p / OUT) ** 2 : p > IN ? -SLIDE * ((1 - p) / (1 - IN)) ** 2 : SLIDE}px)`;
-      const spin = dist * 900;
-      wheels.forEach(w => w.style.transform = `rotate(${spin}deg)`);
       train.style.transform = reduceMotion ? "" : `translateY(${Math.sin(dist * 14) * 1.2 * v}px)`;
       const show = Math.max(0, Math.min(1, (p - OUT + FADE) / FADE, (IN + FADE - p) / FADE));
       cab.style.opacity = show;
@@ -1549,7 +1569,7 @@
   // ones seated, so the passengers who stay keep a tidy pattern with no gaps.
   function fillScene(q) {
     const plat = $("platform");
-    emptySeats(); plat.innerHTML = "";
+    emptySeats(); plat.innerHTML = ""; pack = [];
     if (q.op === "+") {
       for (let i = 0; i < q.a; i++) sit(personEl());
       for (let i = 0; i < q.b; i++) plat.appendChild(personEl("board"));
@@ -1677,8 +1697,12 @@
   // Where an element sits inside the scene, in px.
   function rel(el) {
     const s = $("scene").getBoundingClientRect(), b = el.getBoundingClientRect();
-    const k = el.offsetWidth ? b.width / el.offsetWidth : 1; // the 3D stage shrinks things further away
-    return { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height, fs: parseFloat(getComputedStyle(el).fontSize) * Math.min(1.2, k) + "px" };
+    return { x: b.left - s.left, y: b.top - s.top, w: b.width, h: b.height };
+  }
+  // The size a whole person is drawn at (it changes with the screen).
+  function paxSize() {
+    const h = parseFloat(getComputedStyle($("scene")).getPropertyValue("--paxh")) || 70;
+    return { w: h * 36 / 70, h };
   }
   function nearestDoor(r) {
     const mid = o => o.x + o.w / 2;
@@ -1698,32 +1722,24 @@
     gap.style.visibility = "hidden";
     p.replaceWith(gap);
   }
-  // Animate a walking copy of a passenger through points [x, y, scale, opacity, timeFraction] in scene px.
-  function walk(r, p, points, dur, cls) {
-    const w = document.createElement("div");
-    w.className = "walker" + (cls ? " " + cls : "");
-    Object.assign(w.style, { left: r.x + "px", top: r.y + "px", width: r.w + "px", height: r.h + "px", fontSize: r.fs }); // r is measured before the passenger leaves its seat
-    w.innerHTML = `<span>${p.dataset.face}</span>`;
-    $("scene").appendChild(w);
-    const anim = w.animate(points.map(([x, y, sc, op, t]) => ({
-      transform: `translate(${x - r.x}px, ${y - r.y}px) scale(${sc})`, opacity: op, offset: t,
-    })), { duration: dur, fill: "forwards" });
-    return anim.finished.then(() => w.remove());
+  // Animate a walking copy of a passenger. Each point is [x, y, scale, opacity, timeFraction], where (x, y) is
+  // the middle of their feet in scene px.
+  function walk(p, points, dur, cls) {
+    const { w, h } = paxSize(), el = document.createElement("div");
+    el.className = "walker" + (cls ? " " + cls : "");
+    Object.assign(el.style, { left: -w / 2 + "px", top: -h + "px", width: w + "px", height: h + "px" });
+    el.innerHTML = bodySVG(p.dataset.face);
+    $("scene").appendChild(el);
+    const anim = el.animate(points.map(([x, y, sc, op, t]) => ({ transform: `translate(${x}px, ${y}px) scale(${sc})`, opacity: op, offset: t })), { duration: dur, fill: "both" });
+    return anim.finished.then(() => el.remove());
   }
 
   // Get on: walk along the platform to the nearest door, step up and in, then pop into a seat.
   function boardOne(p, gen, onIn) {
-    const r = rel(p), d = nearestDoor(r);
-    const doorX = d.x + d.w / 2 - r.w / 2, doorY = d.y + d.h - r.h - 4;
-    const walkMs = slow(Math.min(1200, 300 + Math.abs(doorX - r.x) * 4)), stepMs = slow(650), dur = walkMs + stepMs;
-    const t1 = walkMs / dur;
+    const r = rel(p), d = nearestDoor(r), x0 = r.x + r.w / 2, y0 = r.y + r.h, doorX = d.x + d.w / 2, doorY = d.y + d.h;
+    const walkMs = slow(Math.min(1200, 300 + Math.abs(doorX - x0) * 4)), stepMs = slow(650), dur = walkMs + stepMs, t1 = walkMs / dur;
     leaveGap(p);
-    return walk(r, p, [
-      [r.x, r.y, 1, 1, 0],
-      [doorX, r.y, 1, 1, t1],
-      [doorX, doorY, 0.95, 1, t1 + (1 - t1) * 0.65],
-      [doorX, doorY - 6, 0.4, 0, 1],
-    ], dur).then(() => {
+    return walk(p, [[x0, y0, 1, 1, 0], [doorX, y0, 1, 1, t1], [doorX, doorY + 2, .86, 1, t1 + (1 - t1) * .65], [doorX, doorY - 4, .62, 0, 1]], dur).then(() => {
       if (gen !== S.gen) return;
       p.classList.remove("board");
       p.classList.add("pop");
@@ -1732,19 +1748,16 @@
     });
   }
 
-  // Get off: go to the nearest door, step down onto the platform, then wave and walk away.
+  // Get off: stand up, go to the nearest door, step down onto the platform, then wave and walk away.
   function alightOne(p, gen, onOut) {
-    const r = rel(p), d = nearestDoor(r), plat = rel($("platform")), W = $("scene").clientWidth;
-    const doorX = d.x + d.w / 2 - r.w / 2, doorY = d.y + d.h - r.h - 4;
-    const platY = plat.y + plat.h / 2 - r.h / 2;
-    const exitX = d.x + d.w / 2 < W / 2 ? -r.w - 20 : W + 20;
-    const toDoor = slow(500), down = slow(450), away = slow(Math.min(1300, 400 + Math.abs(exitX - doorX) * 3.5));
-    const dur = toDoor + down + away;
+    const r = rel(p), d = nearestDoor(r), plat = rel($("platform")), W = $("scene").clientWidth, { h } = paxSize();
+    const doorX = d.x + d.w / 2, doorY = d.y + d.h, platY = plat.y + plat.h, exitX = doorX < W / 2 ? -30 : W + 30;
+    const toDoor = slow(500), down = slow(450), away = slow(Math.min(1300, 400 + Math.abs(exitX - doorX) * 3.5)), dur = toDoor + down + away;
     stand(p); // the seat turns pale again
     setTimeout(() => gen === S.gen && onOut(), toDoor + down);
-    return walk(r, p, [
-      [r.x, r.y, 1, 1, 0],
-      [doorX, doorY, 1, 1, toDoor / dur],
+    return walk(p, [
+      [r.x + r.w / 2, r.y + r.h / 2 + h * .25, .5, 1, 0], // in the window, drawn half size
+      [doorX, doorY, .82, 1, toDoor / dur],
       [doorX, platY, 1, 1, (toDoor + down) / dur],
       [exitX, platY, 1, 1, 1],
     ], dur, "bye");

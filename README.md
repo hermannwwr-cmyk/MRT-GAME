@@ -18,6 +18,7 @@ A Singapore MRT math game for kids around age 6: single-digit addition and subtr
 
 Made for young kids:
 - Big buttons with only 3 answers to choose from
+- The passengers are little drawn people (grandmas, kids, people of all kinds) in a soft storybook style
 - Tap the passengers to count them (a number appears on each one)
 - The train has 10 seats in two rows of 5, blue then orange, and passengers fill them in order. So 7 looks like "5 and 2 more", and the empty seats show how many more make 10.
 - When the train stops, passengers walk to the doors and get on (or step off and walk away waving) one at a time, while a counter says how many: ➕ 1, 2, 3. Then the question appears, and kids can count everyone in the train.
