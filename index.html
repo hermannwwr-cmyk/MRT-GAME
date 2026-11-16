@@ -1305,26 +1305,31 @@
     const DASH = 56, VH = H - DASH, vx = W / 2, hz0 = VH * .42, F = W * .55, CAM = 2.4, LEN = 70, NEAR = .5, ELEV = 9;
     let hz = hz0; // the horizon bobs a little with the ride
     const P = (X, Y, z) => [vx + X * F / z, hz + (CAM - Y) * F / z];
-    const lineCol = S.line.color;
+    const lineCol = S.line.color, NAVY = "#3a4758";
     const poly = (pts, fill) => { g.beginPath(); pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); g.closePath(); g.fillStyle = fill; g.fill(); };
     const quad = (X1, X2, Y1, Y2, z1, z2, fill) => poly([P(X1, Y1, z1), P(X2, Y1, z1), P(X2, Y2, z2), P(X1, Y2, z2)], fill);
     const wall = (X, Y1, Y2, z1, z2, fill) => poly([P(X, Y1, z1), P(X, Y2, z1), P(X, Y2, z2), P(X, Y1, z2)], fill); // an upright face along the line
     const disc = (x, y, r, fill) => { g.beginPath(); g.arc(x, y, Math.max(0, r), 0, 7); g.fillStyle = fill; g.fill(); };
+    const rr = (x, y, w, h, r, fill) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, w, h, Math.max(0, Math.min(r, w / 2, h / 2))); else g.rect(x, y, w, h); g.fillStyle = fill; g.fill(); }; // a rounded box
     const rnd = k => { const x = Math.sin(k * 127.1) * 43758.5453; return x - Math.floor(x); };
     // colours: #rrggbb → [r, g, b]; mix two of them (t = 0 gives a, 1 gives b)
-    const rgb = c => { const n = parseInt(/^#[0-9a-f]{6}$/i.test(c) ? c.slice(1) : "bfe3ff", 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+    const rgb = c => { const n = parseInt(/^#[0-9a-f]{6}$/i.test(c) ? c.slice(1) : "cfeaff", 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
     const mix = (a, b, t) => { const A = rgb(a), B = rgb(b); return "#" + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, "0")).join(""); };
-    let env = "", sky1, sky2, time, weather, night, wet, ground, hazeOf;
+    // the storybook palette (the same pastel walls and roof bands as the station's skyline)
+    const WALLS = ["#fde3d0", "#dcedf8", "#fbeab9", "#e5def6", "#d6f0e1"], ROOFS = ["#f08a6e", "#6fb0de", "#e9b730", "#a48be0", "#63b98d"];
+    const CARS = ["#f27d8a", "#f2c94c", "#4f8fe0", "#ffffff", "#59b38a", "#9a82d8"];
+    let env = "", sky1, sky2, time, weather, night, wet, tone, hazeOf;
     function readEnv() {
       const key = scene.dataset.time + scene.dataset.weather;
       if (key === env) return;
       env = key;
       const cs = getComputedStyle(scene);
-      sky1 = cs.getPropertyValue("--sky1").trim() || "#bfe3ff"; sky2 = cs.getPropertyValue("--sky2").trim() || "#e8f5ff";
+      sky1 = cs.getPropertyValue("--sky1").trim() || "#cfeaff"; sky2 = cs.getPropertyValue("--sky2").trim() || "#f6fcff";
       time = scene.dataset.time; weather = scene.dataset.weather;
       night = time === "night"; wet = /rain|storm/.test(weather);
-      ground = night ? "#26331f" : time === "evening" ? "#8a9a5a" : wet ? "#6f8f5c" : "#86b765";
-      hazeOf = (c, z) => mix(c, sky2, Math.min(.72, z / 120)); // far things fade into the sky
+      // every outdoor colour goes through tone(): dark and blue at night, warmer in the evening, greyer in the rain
+      tone = c => night ? mix(c, "#18233f", .62) : time === "evening" ? mix(c, "#ff9a62", .16) : wet ? mix(c, "#8a9bad", .28) : c;
+      hazeOf = (c, z) => mix(tone(c), sky2, Math.min(.7, z / 120)); // far things fade into the sky
     }
     // the arch of a tunnel (or tunnel mouth) at depth z
     function arch(z, more) {
@@ -1332,36 +1337,45 @@
       if (!more) g.beginPath();
       g.moveTo(l, b); g.lineTo(l, w); g.quadraticCurveTo(l, t, vx, t); g.quadraticCurveTo(r, t, r, w); g.lineTo(r, b); g.closePath();
     }
-    function track(z0, bed, sleeper) {
+    function track(z0, bed, sleeper, foot, top) {
       quad(-1.5, 1.5, 0, 0, NEAR, 400, bed);
       for (let k = Math.ceil(z0); k < z0 + 60; k++) { // sleepers every 1 unit, moving towards us
         const z = k - z0 + NEAR; if (z < NEAR) continue;
         g.globalAlpha = Math.min(1, 3 / z + .2); quad(-1.05, 1.05, .02, .02, z, z + .25, sleeper);
       }
       g.globalAlpha = 1;
-      [-.72, .72].forEach(X => { // rails: a dark foot with a shiny top
+      [-.72, .72].forEach(X => { // rails: a soft foot with a bright top
         const [x1, y1] = P(X, .05, NEAR), [x2, y2] = P(X, .05, 400);
-        g.strokeStyle = "#4d565f"; g.lineWidth = 4.5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
-        g.strokeStyle = "#dfe6ec"; g.lineWidth = 1.8; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+        g.strokeStyle = foot; g.lineWidth = 4.5; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
+        g.strokeStyle = top; g.lineWidth = 1.8; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
       });
+    }
+    // someone waiting on the platform ahead: a little storybook figure, standing at (X, Y) and depth z
+    function person(X, Y, z, c) {
+      const [x, y] = P(X, Y, z), u = 1.8 * F / z / 62;
+      g.fillStyle = c[4]; g.fillRect(x - 7 * u, y - 19 * u, 6 * u, 18 * u); g.fillRect(x + u, y - 19 * u, 6 * u, 18 * u);
+      rr(x - 10 * u, y - 40 * u, 20 * u, 24 * u, 6 * u, c[3]);
+      disc(x, y - 51 * u, 10 * u, SKIN[c[0]]);
+      g.fillStyle = c[2]; g.beginPath(); g.arc(x, y - 52 * u, 10.5 * u, Math.PI, 0); g.closePath(); g.fill();
     }
     function station(zS, under) { // the next platform, on the left, from zS onwards
       if (zS > 40) return;
       const z1 = Math.max(NEAR, zS), z2 = zS + 30, top = under ? 4.1 : 2.5;
-      if (under) poly([P(-7, 0, z2), P(7, 0, z2), P(7, 5, z2), P(-7, 5, z2)], "#fff3cf"); // the lit hall beyond
-      quad(-7, -1.6, 1.1, 1.1, z1, z2, "#d5dde4");                      // platform top
-      wall(-1.6, 0, 1.1, z1, z2, "#6f7983");                           // its edge
-      quad(-1.95, -1.6, 1.11, 1.11, z1, z2, "#f2c94c");                 // yellow line
-      quad(-2.02, -1.95, 1.11, 1.11, z1, z2, "#f7f9fb");
-      quad(-7, 3, 4.6, 4.6, z1, z2, under ? "#e9edf1" : "#cfd7de");      // roof / ceiling
-      for (let k = 0; k < 7; k++) { const z = z1 + 1 + k * 4.5; if (z < z2) quad(-7, 3, 4.58, 4.58, z, z + .35, under ? "#fffbe6" : "#b3bdc7"); } // lights / beams
-      for (let k = 5; k >= 0; k--) { // pillars, far to near
+      if (under) poly([P(-7, 0, z2), P(7, 0, z2), P(7, 5, z2), P(-7, 5, z2)], "#fff6dc"); // the lit hall beyond
+      quad(-7, -1.6, 1.1, 1.1, z1, z2, "#e7edf3");                      // platform top
+      wall(-1.6, 0, 1.1, z1, z2, "#c3ced9");                           // its edge
+      quad(-1.95, -1.6, 1.11, 1.11, z1, z2, "#f6cf4f");                 // yellow line
+      quad(-2.02, -1.95, 1.11, 1.11, z1, z2, "#ffffff");
+      quad(-7, 3, 4.6, 4.6, z1, z2, under ? "#fbfaf5" : "#f4f7fa");      // roof / ceiling
+      for (let k = 0; k < 7; k++) { const z = z1 + 1 + k * 4.5; if (z < z2) quad(-7, 3, 4.58, 4.58, z, z + .35, under ? "#fff3c4" : "#dfe6ee"); } // lights / beams
+      for (let k = 5; k >= 0; k--) { // pillars and the people waiting between them, far to near
         const z = z1 + 2 + k * 5; if (z >= z2) continue;
-        quad(-5.25, -4.95, 1.1, 4.1, z, z, "#aab5c0"); wall(-4.95, 1.1, 4.1, z, z + .3, "#7f8b97");
+        quad(-5.25, -4.95, 1.1, 4.1, z, z, "#e3e9f0"); wall(-4.95, 1.1, 4.1, z, z + .3, "#c9d3dd");
+        if (z - 2.2 > NEAR + 1.5) person(-3.1 - (k % 2) * .9, 1.1, z - 2.2, CAST[(k * 5 + 3) % CAST.length]);
       }
       // platform screen doors along the edge: glass panels between posts (half height outside, full height underground)
-      wall(-1.6, 1.1, top, z1, z2, "rgba(190,225,245,.3)");
-      g.strokeStyle = "#8f9ba7";
+      wall(-1.6, 1.1, top, z1, z2, "rgba(219,239,251,.5)");
+      g.strokeStyle = "#bcc7d2";
       for (let k = 0; k < 13; k++) {
         const z = z1 + k * 2.5; if (z >= z2) break;
         const [x, y] = P(-1.6, 1.1, z), [, t] = P(-1.6, top, z);
@@ -1369,174 +1383,165 @@
       }
       const [ax, ay] = P(-1.6, top, z1), [bx, by] = P(-1.6, top, z2);
       g.lineWidth = 2; g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.stroke();
-      if (zS > 9) poly([P(-7, 4.6, z1), P(3, 4.6, z1), P(3, 4.1, z1), P(-7, 4.1, z1)], lineCol); // roof fascia in the line colour
+      if (zS > 9) poly([P(-7, 4.6, z1), P(3, 4.6, z1), P(3, 4.32, z1), P(-7, 4.32, z1)], lineCol); // a band in the line colour along the roof's edge
     }
-    function sky(z0) {
+    function sky() {
       const sg = g.createLinearGradient(0, 0, 0, hz); sg.addColorStop(0, sky1); sg.addColorStop(1, sky2);
       g.fillStyle = sg; g.fillRect(0, 0, W, hz + 1);
+      const sx = W * .78;
       if (night) {
         for (let k = 0; k < 28; k++) { g.fillStyle = `rgba(255,255,255,${.5 + rnd(k + 5) * .5})`; g.fillRect(rnd(k) * W, rnd(k + 50) * hz * .8, 1.6, 1.6); }
-        if (!wet) { disc(W * .78, hz * .3, 12, "#f4eec4"); disc(W * .78 + 6, hz * .3 - 3, 11, sky1); } // a crescent moon
-      } else {
-        const sx = W * .78, sy = hz * (time === "afternoon" ? .26 : .62), col = time === "evening" ? "255,122,61" : time === "morning" ? "255,199,106" : "255,216,74";
-        g.globalAlpha = weather === "sunny" ? 1 : .3;
-        const gl = g.createRadialGradient(sx, sy, 4, sx, sy, 60); gl.addColorStop(0, `rgba(${col},.55)`); gl.addColorStop(1, `rgba(${col},0)`);
-        g.fillStyle = gl; g.fillRect(sx - 60, sy - 60, 120, 120);
-        disc(sx, sy, 13, `rgb(${col})`);
+        if (!wet) { disc(sx, hz * .3, 12, "#f4eec4"); disc(sx + 6, hz * .3 - 3, 11, sky1); } // a crescent moon
+      } else { // a soft sun with a pale halo
+        const sy = hz * (time === "afternoon" ? .26 : .6), col = time === "evening" ? "#ff8a52" : time === "morning" ? "#ffc76a" : "#ffd96a";
+        g.globalAlpha = weather === "sunny" ? .55 : .2; disc(sx, sy, 25, "#fff3c4");
+        g.globalAlpha = weather === "sunny" ? 1 : .35; disc(sx, sy, 15, col);
         g.globalAlpha = 1;
       }
-      // clouds: a few fair-weather ones when sunny, a grey blanket in rain
+      // fluffy clouds: a few when sunny, a grey blanket in the rain
       const n = weather === "sunny" ? 3 : weather === "cloudy" ? 7 : 9, drift = performance.now() / 1000 * 2;
-      const tone = night ? "70,80,100" : weather === "sunny" ? "255,255,255" : weather === "cloudy" ? "240,244,248" : weather === "rain" ? "170,180,192" : "120,130,145";
+      g.fillStyle = night ? "#55628a" : weather === "sunny" ? "#ffffff" : weather === "cloudy" ? "#f4f7fa" : weather === "rain" ? "#c6ced8" : "#a3adba";
       for (let k = 0; k < n; k++) {
         const s = .6 + rnd(k + 20) * .7, x = ((rnd(k + 11) * (W + 160) + drift * (.5 + rnd(k))) % (W + 160)) - 80, y = hz * (.12 + rnd(k + 30) * .5);
-        g.fillStyle = `rgba(${tone},${night ? .55 : .9})`;
         g.beginPath(); g.ellipse(x, y + 7 * s, 30 * s, 9 * s, 0, 0, 7); g.ellipse(x - 12 * s, y + 2 * s, 14 * s, 10 * s, 0, 0, 7); g.ellipse(x + 9 * s, y - 2 * s, 17 * s, 13 * s, 0, 0, 7); g.fill();
       }
     }
     function outside(z0, zS, zP = 999) {
       readEnv();
-      sky(z0);
-      // the ground, lighter and hazier towards the horizon
-      const gg = g.createLinearGradient(0, hz, 0, VH); gg.addColorStop(0, hazeOf(ground, 70)); gg.addColorStop(.5, ground); gg.addColorStop(1, mix(ground, "#000000", .12));
+      sky();
+      // soft green ground, paler towards the horizon
+      const gg = g.createLinearGradient(0, hz, 0, VH); gg.addColorStop(0, hazeOf("#bfe6c3", 80)); gg.addColorStop(1, tone("#aadcb0"));
       g.fillStyle = gg; g.fillRect(0, hz, W, VH - hz);
-      for (let k = 0; k < 16; k++) { // the city on the horizon, fading into the sky
+      for (let k = 0; k < 16; k++) { // pale blocks on the horizon
         const x = rnd(k + 9) * W, w = 12 + rnd(k + 3) * 24, h = 8 + rnd(k + 7) * 32;
-        g.fillStyle = hazeOf(night ? "#2a3550" : "#8fa9c4", 60 + rnd(k) * 30); g.fillRect(x, hz - h, w, h + 1);
+        rr(x, hz - h, w, h + 4, 3, hazeOf("#c3d9ee", 50 + rnd(k) * 30));
       }
-      g.fillStyle = hazeOf(night ? "#1d2a22" : "#5f9a62", 80); g.fillRect(0, hz - 3, W, 4); // a far line of trees
+      g.fillStyle = hazeOf("#8fd3a0", 70); g.fillRect(0, hz - 3, W, 4); // a far line of trees
       // Like the real MRT outside the city centre, the line runs on a viaduct: the ground, roads, trees and the
-      // feet of the HDB flats are ELEV below the track, and the deck (with low concrete walls) hides what's under it.
-      const GY = -ELEV, dash = night ? "#c9c27a" : "#f4f4f4";
+      // feet of the HDB flats are ELEV below the track, and the deck (with low side walls) hides what's under it.
+      const GY = -ELEV;
       [-9, 9].forEach(X => { // roads alongside, with lane markings rushing past and a few cars
-        quad(X - 1.9, X + 1.9, GY, GY, NEAR, 400, night ? "#3a3f45" : "#8f959c");
-        for (let k = Math.ceil(z0 / 4); k < z0 / 4 + 25; k++) { const z = k * 4 - z0; if (z > NEAR) quad(X - .07, X + .07, GY, GY, z, z + 1.6, dash); }
+        quad(X - 1.9, X + 1.9, GY, GY, NEAR, 400, tone("#d5dbe2"));
+        for (let k = Math.ceil(z0 / 4); k < z0 / 4 + 25; k++) { const z = k * 4 - z0; if (z > NEAR) quad(X - .07, X + .07, GY, GY, z, z + 1.6, night ? "#e9e2a8" : "#ffffff"); }
         const pace = X < 0 ? .45 : 1.6; // the left road goes our way (we overtake); the right road comes towards us
         for (let k = Math.ceil(z0 * pace / 15); k < z0 * pace / 15 + 7; k++) {
           const z = k * 15 + rnd(k) * 6 - z0 * pace, cx = X + (X < 0 ? -.85 : .85);
           if (z < NEAR + 2 || z > zP) continue;
-          const col = ["#e2574c", "#f2c94c", "#4a90d9", "#f4f6f8", "#3aa76d", "#8e6fd1"][Math.abs(k) % 6];
-          quad(cx - .55, cx + .55, GY + .5, GY + .5, z, z + 2.2, hazeOf(night ? mix(col, "#000000", .55) : col, z));
-          quad(cx - .45, cx + .45, GY + .55, GY + .55, z + .5, z + 1.5, hazeOf(night ? "#1c2530" : "#2f4a63", z));
+          quad(cx - .55, cx + .55, GY + .5, GY + .5, z, z + 2.2, hazeOf(CARS[Math.abs(k) % 6], z));
+          quad(cx - .43, cx + .43, GY + .55, GY + .55, z + .55, z + 1.5, hazeOf(NAVY, z));
           if (night) quad(cx - .5, cx + .5, GY + .1, GY + .1, X < 0 ? z + 2.2 : z - 1.6, X < 0 ? z + 3.8 : z, "rgba(255,240,180,.35)"); // headlights on the road
         }
       });
-      if (zP < 400) { // where the line goes underground: a grassy bank with the tunnel mouth in it, which hides what's beyond
-        quad(-80, 80, GY, 6, zP, zP, hazeOf(night ? "#2c3a28" : "#7fa865", zP));
+      if (zP < 400) { // where the line goes underground: a green bank with the tunnel mouth in it, which hides what's beyond
+        quad(-80, 80, GY, 6, zP, zP, hazeOf("#a9dbb0", zP));
         g.save(); g.beginPath(); g.rect(0, 0, W, VH); arch(zP, true); g.clip("evenodd");
-        quad(-4.2, 4.2, GY, 6.2, zP, zP, night ? "#6d6a64" : "#b9b3aa"); g.restore(); // concrete face around the mouth
-        arch(zP); g.fillStyle = "#11161b"; g.fill();
+        quad(-4.2, 4.2, GY, 6.2, zP, zP, tone("#f1eee8")); g.restore(); // the pale wall around the mouth
+        arch(zP); g.fillStyle = "#2f3a55"; g.fill();
       }
-      // beside the line, drawn far to near: HDB flats and trees down on the ground
+      // beside the line, drawn far to near: pastel HDB flats and round trees down on the ground
       const items = [];
       for (let k = Math.floor(z0 / 12); k < z0 / 12 + 8; k++) items.push(["hdb", k * 12 - z0 + 6, k]);
       for (let k = Math.floor(z0 / 3); k < z0 / 3 + 22; k++) items.push(["tree", k * 3 - z0 + 1, k]);
       items.filter(i => i[1] > NEAR + .3 && i[1] < zP).sort((a, b) => b[1] - a[1]).forEach(([kind, z, k]) => {
         const side = k % 2 ? 1 : -1;
         if (kind === "hdb") {
-          const X = side * (14 + rnd(k) * 5), w = 6, d = 5, h = 24 + rnd(k + 1) * 14, xin = X - side * w / 2;
-          const paint = night ? "#39445c" : ["#f6f1e8", "#f3ead9", "#f8ead8"][Math.abs(k) % 3], roof = ["#e07a5f", "#5fa8d3", "#f2c94c", "#81b29a", "#b388eb"][Math.abs(k) % 5];
-          wall(xin, GY, GY + h, z, z + d, hazeOf(mix(paint, "#000000", .2), z)); // the side facing the line, in shade
-          const [x1, y1] = P(X - w / 2, GY + h, z), [x2, y2] = P(X + w / 2, GY, z), bw = x2 - x1, bh = y2 - y1, rows = 13, ch = bh / (rows + 1);
-          g.fillStyle = hazeOf(paint, z); g.fillRect(x1, y1, bw, bh);
-          g.fillStyle = hazeOf(night ? mix(roof, "#000000", .5) : roof, z); g.fillRect(x1 - bw * .03, y1 - ch * .25, bw * 1.06, ch * .5); // roof band
-          for (let r = 1; r < rows; r++) { // rows of windows (lit here and there at night)
-            if (!night) { g.fillStyle = hazeOf("#9dbbd6", z); g.fillRect(x1 + bw * .08, y1 + r * ch, bw * .84, ch * .42); }
-            else for (let c = 0; c < 5; c++) if (rnd(k * 31 + r * 7 + c) > .5) { g.fillStyle = "#ffd86a"; g.fillRect(x1 + bw * (.1 + c * .17), y1 + r * ch, bw * .11, ch * .45); }
-          }
-          g.fillStyle = hazeOf(night ? mix(roof, "#000000", .55) : roof, z); g.fillRect(x1 + bw * (side > 0 ? .06 : .8), y1, bw * .14, bh); // a stripe of colour down the block
-          g.fillStyle = hazeOf(mix(paint, "#000000", .28), z); g.fillRect(x1, y2 - ch * .9, bw, ch * .9); // the void deck
+          const X = side * (14 + rnd(k) * 5), w = 6, d = 5, h = 24 + rnd(k + 1) * 14, xin = X - side * w / 2, roof = ROOFS[Math.abs(k) % 5], paint = mix(WALLS[Math.abs(k) % 5], roof, .16);
+          wall(xin, GY, GY + h, z, z + d, hazeOf(mix(paint, NAVY, .16), z)); // the side facing the line, a shade darker
+          const [x1, y1] = P(X - w / 2, GY + h, z), [x2, y2] = P(X + w / 2, GY, z), bw = x2 - x1, bh = y2 - y1;
+          rr(x1, y1, bw, bh + 4, bw * .06, hazeOf(paint, z));
+          g.globalAlpha = .6; g.fillStyle = hazeOf(roof, z); g.fillRect(x1 + bw * (side > 0 ? 0 : .9), y1 + bw * .06, bw * .1, bh); g.globalAlpha = 1; // a stripe of its colour down the side
+          rr(x1 - bw * .04, y1 - bw * .05, bw * 1.08, bw * .13, bw * .06, hazeOf(roof, z)); // roof band
+          const cell = bw * .135, rows = Math.floor((bh - bw * .2) / (cell * 1.75)); // rows of little square windows
+          g.fillStyle = night ? "#ffe9a8" : "#ffffff"; g.globalAlpha = night ? 1 : .78;
+          for (let r = 0; r < rows; r++) for (let c = 0; c < 4; c++) if (!night || rnd(k * 31 + r * 7 + c) > .55) g.fillRect(x1 + bw * (.14 + c * .2), y1 + bw * .16 + r * cell * 1.75, cell, cell);
+          g.globalAlpha = 1;
         } else {
           const X = side * (k % 3 ? 4.6 + rnd(k) * 2 : 12 + rnd(k) * 2), [tx, ty] = P(X, GY, z), [, top] = P(X, GY + 4, z), r = 1.7 * F / z;
-          const leaf = night ? "#24402a" : ["#4f9d4f", "#5cb85c", "#468f46"][Math.abs(k) % 3];
-          g.fillStyle = hazeOf("#6b4f33", z); g.fillRect(tx - .15 * F / z, top, .3 * F / z, ty - top);
-          disc(tx, top, r, hazeOf(mix(leaf, "#000000", .12), z));
-          disc(tx - r * .28, top - r * .3, r * .62, hazeOf(mix(leaf, "#ffffff", night ? .04 : .16), z)); // sunlit side
+          g.fillStyle = hazeOf("#8a6a48", z); g.fillRect(tx - .15 * F / z, top, .3 * F / z, ty - top);
+          disc(tx, top, r, hazeOf("#8fd3a0", z));
+          g.globalAlpha = night ? .08 : .28; disc(tx - r * .3, top - r * .3, r * .5, "#ffffff"); g.globalAlpha = 1; // a soft highlight
         }
       });
       // the viaduct deck, the track on it, its low side walls and the power rail
       const zEnd = Math.min(400, zP); // the deck and its walls stop at a tunnel mouth
-      quad(-2.8, 2.8, 0, 0, NEAR, zEnd, night ? "#5d5a55" : "#b9b3aa");
-      for (let k = Math.ceil(z0 / 6); k < z0 / 6 + 12; k++) { const z = k * 6 - z0; if (z > NEAR && z < zEnd) quad(-2.8, 2.8, .01, .01, z, z + .12, "rgba(0,0,0,.14)"); } // joints in the deck
-      track(z0, night ? "#6b655d" : "#8d8478", "#6e5a46");
-      quad(-1.36, -1.2, .3, .3, NEAR, zEnd, night ? "#9a8f62" : "#eadb9a"); wall(-1.2, .08, .3, NEAR, zEnd, night ? "#6f6746" : "#b8a96c"); // power rail under its cover
+      quad(-2.8, 2.8, 0, 0, NEAR, zEnd, tone("#ece9e3"));
+      for (let k = Math.ceil(z0 / 6); k < z0 / 6 + 12; k++) { const z = k * 6 - z0; if (z > NEAR && z < zEnd) quad(-2.8, 2.8, .01, .01, z, z + .12, "rgba(58,71,88,.1)"); } // joints in the deck
+      track(z0, tone("#d6d0c6"), tone("#b9ae9f"), tone("#98a2af"), night ? "#cfd8e6" : "#ffffff");
+      quad(-1.36, -1.2, .3, .3, NEAR, zEnd, tone("#f6dd8a")); wall(-1.2, .08, .3, NEAR, zEnd, tone("#dcc26c")); // power rail under its cover
       [-2.8, 2.8].forEach(X => {
-        wall(X, 0, .6, NEAR, zEnd, night ? "#77736c" : "#d6d1c8");
-        quad(X - .12 * Math.sign(X), X + .12 * Math.sign(X), .6, .6, NEAR, zEnd, night ? "#8c8780" : "#f0ece5");
+        wall(X, 0, .6, NEAR, zEnd, tone("#f3f0ea"));
+        quad(X - .12 * Math.sign(X), X + .12 * Math.sign(X), .6, .6, NEAR, zEnd, tone("#ffffff"));
       });
       for (let k = Math.ceil(z0 / 5); k < z0 / 5 + 16; k++) { // posts along the walls, so the speed shows
         const z = k * 5 - z0; if (z < NEAR + .2 || z > zEnd) continue;
-        [-2.8, 2.8].forEach(X => { const [x, y] = P(X, .6, z), [, t] = P(X, 1.3, z); g.strokeStyle = night ? "#8c8780" : "#a39d93"; g.lineWidth = Math.max(1, .12 * F / z); g.beginPath(); g.moveTo(x, y); g.lineTo(x, t); g.stroke(); });
+        [-2.8, 2.8].forEach(X => { const [x, y] = P(X, .6, z), [, t] = P(X, 1.3, z); g.strokeStyle = tone("#cfc8bc"); g.lineCap = "round"; g.lineWidth = Math.max(1, .14 * F / z); g.beginPath(); g.moveTo(x, y); g.lineTo(x, t); g.stroke(); g.lineCap = "butt"; });
       }
       station(zS, false);
     }
-    function inside(z0, zS) {
-      g.fillStyle = "#0b0f13"; g.fillRect(0, 0, W, VH);
+    function inside(z0, zS) { // a tunnel in soft indigo, with round warm lamps
+      g.fillStyle = "#2f3a55"; g.fillRect(0, 0, W, VH);
       const lim = Math.min(60, zS), STEP = 2.5, k0 = Math.floor(z0 / STEP);
       if (zS < 60) { // light from the station ahead
         const [gx, gy] = P(0, 2, zS), gl = g.createRadialGradient(gx, gy, 2, gx, gy, 6 * F / zS + 30);
-        gl.addColorStop(0, "rgba(255,240,200,.9)"); gl.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = gl; g.fillRect(0, 0, W, VH);
+        gl.addColorStop(0, "rgba(255,244,214,.9)"); gl.addColorStop(1, "rgba(255,244,214,0)"); g.fillStyle = gl; g.fillRect(0, 0, W, VH);
       }
       for (let k = k0 + 24; k >= k0; k--) { // the tunnel lining, ring by ring (far to near), lit by the train's headlights
         const zA = Math.max(NEAR, k * STEP - z0), zB = Math.min(lim, (k + 1) * STEP - z0);
         if (zB <= zA) continue;
-        const light = .16 + Math.min(1, 5 / (zA + 2)), base = k % 2 ? [80, 91, 104] : [50, 57, 66];
+        const light = .45 + Math.min(1, 5 / (zA + 2)) * .65, base = k % 2 ? [112, 124, 164] : [94, 106, 146];
         g.fillStyle = `rgb(${base.map(v => Math.round(Math.min(255, v * light))).join(",")})`;
         g.beginPath(); arch(zA, true); arch(zB, true); g.fill("evenodd");
-        if (zA > NEAR) { arch(zA); g.strokeStyle = `rgba(170,186,202,${Math.min(.85, 2.5 / zA + .08)})`; g.lineWidth = Math.max(1, .1 * F / zA); g.stroke(); } // the joint between rings
       }
-      wall(-1.9, 0, .5, NEAR, lim, "#2a3036"); quad(-2.6, -1.9, .5, .5, NEAR, lim, "#454d55"); // a walkway along the left wall
-      track(z0, "#24282c", "#5f5245");
-      for (let k = k0 + 24; k >= k0; k--) { // wall lights on every other ring
+      wall(-1.9, 0, .5, NEAR, lim, "#4a5676"); quad(-2.6, -1.9, .5, .5, NEAR, lim, "#7682a6"); // a walkway along the left wall
+      track(z0, "#46516e", "#727d9d", "#2c3548", "#dfe6f2");
+      for (let k = k0 + 24; k >= k0; k--) { // round lamps on every other ring
         const z = k * STEP - z0; if (!(k % 2) || z < NEAR + .4 || z > lim) continue;
         [-2.45, 2.45].forEach(X => {
           const [x, y] = P(X, 2.5, z), s = F / z;
-          if (z < 22) { const gl = g.createRadialGradient(x, y, 0, x, y, .7 * s); gl.addColorStop(0, "rgba(255,226,150,.38)"); gl.addColorStop(1, "rgba(255,226,150,0)"); g.fillStyle = gl; g.fillRect(x - .7 * s, y - .7 * s, 1.4 * s, 1.4 * s); }
-          g.fillStyle = "#ffe9b0"; g.fillRect(x - .05 * s, y - .22 * s, .1 * s + 1, .44 * s + 1);
+          if (z < 22) { const gl = g.createRadialGradient(x, y, 0, x, y, .75 * s); gl.addColorStop(0, "rgba(255,233,176,.45)"); gl.addColorStop(1, "rgba(255,233,176,0)"); g.fillStyle = gl; g.fillRect(x - .75 * s, y - .75 * s, 1.5 * s, 1.5 * s); }
+          disc(x, y, Math.max(1.2, .16 * s), "#ffe9b0");
         });
       }
-      const hl = g.createRadialGradient(vx, VH + 10, 10, vx, VH + 10, W * .55); hl.addColorStop(0, "rgba(255,246,220,.2)"); hl.addColorStop(1, "rgba(255,246,220,0)");
+      const hl = g.createRadialGradient(vx, VH + 10, 10, vx, VH + 10, W * .55); hl.addColorStop(0, "rgba(255,246,220,.22)"); hl.addColorStop(1, "rgba(255,246,220,0)");
       g.fillStyle = hl; g.fillRect(0, hz, W, VH - hz); // the headlights on the track
       station(zS, true);
     }
     function frameAndDash(v, wet) {
       if (wet) {
-        g.strokeStyle = "rgba(220,235,255,.55)"; g.lineWidth = 1.2;
+        g.strokeStyle = "rgba(255,255,255,.6)"; g.lineWidth = 1.2;
         for (let k = 0; k < 40; k++) { const x = Math.random() * W, y = Math.random() * VH; g.beginPath(); g.moveTo(x, y); g.lineTo(x - 3, y + 9 + v * 8); g.stroke(); }
         // the windscreen wiper sweeps from side to side
         const a = Math.sin(performance.now() / 380) * 1.05, len = VH * .78, px = vx, py = VH + 8;
         const ex = px + Math.sin(a) * len, ey = py - Math.cos(a) * len, mx = px + Math.sin(a) * len * .45, my = py - Math.cos(a) * len * .45;
         g.lineCap = "round";
-        g.strokeStyle = "#1b2126"; g.lineWidth = 3; g.beginPath(); g.moveTo(px, py); g.lineTo(ex, ey); g.stroke();
+        g.strokeStyle = NAVY; g.lineWidth = 3; g.beginPath(); g.moveTo(px, py); g.lineTo(ex, ey); g.stroke();
         g.lineWidth = 6; g.beginPath(); g.moveTo(mx, my); g.lineTo(ex, ey); g.stroke();
         g.lineCap = "butt";
       }
-      const shade = g.createLinearGradient(0, 8, 0, 44); shade.addColorStop(0, "rgba(0,0,0,.28)"); shade.addColorStop(1, "rgba(0,0,0,0)");
-      g.fillStyle = shade; g.fillRect(12, 8, W - 24, 36); // the sun visor's shade at the top of the glass
-      const fg = g.createLinearGradient(0, 0, 0, VH); fg.addColorStop(0, "#f3f6f8"); fg.addColorStop(1, "#cdd5dc");
-      const opening = () => { if (g.roundRect) g.roundRect(12, 8, W - 24, VH - 12, 20); else g.rect(12, 8, W - 24, VH - 12); };
-      g.fillStyle = fg; g.beginPath(); g.rect(0, 0, W, VH + 2); opening(); g.fill("evenodd"); // window frame
-      g.strokeStyle = "#232a31"; g.lineWidth = 3; g.beginPath(); opening(); g.stroke();               // its rubber seal
-      poly([[34, 10], [90, 10], [44, VH - 6], [16, VH - 6]], "rgba(255,255,255,.08)");               // a reflection on the glass
+      const shade = g.createLinearGradient(0, 8, 0, 40); shade.addColorStop(0, "rgba(58,71,88,.2)"); shade.addColorStop(1, "rgba(58,71,88,0)");
+      g.fillStyle = shade; g.fillRect(12, 8, W - 24, 32); // the sun visor's shade at the top of the glass
+      const opening = () => { if (g.roundRect) g.roundRect(12, 8, W - 24, VH - 12, 22); else g.rect(12, 8, W - 24, VH - 12); };
+      g.fillStyle = "#fbfaf5"; g.beginPath(); g.rect(0, 0, W, VH + 2); opening(); g.fill("evenodd"); // the cream window frame, like the train's body
+      g.strokeStyle = NAVY; g.lineWidth = 3.5; g.beginPath(); opening(); g.stroke();                 // its dark seal, like the carriage window's
+      poly([[34, 10], [84, 10], [42, VH - 6], [16, VH - 6]], "rgba(255,255,255,.12)");              // a reflection on the glass
       // the dashboard: a display with the next stop, and a speed dial
-      const dg = g.createLinearGradient(0, VH, 0, H); dg.addColorStop(0, "#3b4651"); dg.addColorStop(1, "#1d242b");
-      g.fillStyle = dg; g.fillRect(0, VH, W, DASH);
-      g.fillStyle = lineCol; g.fillRect(0, VH, W, 4);
-      const my = VH + 4 + (DASH - 4) / 2, dialX = W - 34;
-      g.fillStyle = "#0e1418"; g.beginPath(); if (g.roundRect) g.roundRect(10, my - 17, dialX - 44, 34, 9); else g.rect(10, my - 17, dialX - 44, 34); g.fill();
-      disc(26, my, 6, "#3ddc5f");
-      const fs = Math.min(17, W / 22); g.font = `800 ${fs}px system-ui, sans-serif`; g.textBaseline = "middle";
-      g.fillStyle = "#9fb3c4"; g.fillText("Next stop", 40, my + 1);
-      const nx = 46 + g.measureText("Next stop").width;
+      g.fillStyle = "#46556b"; g.fillRect(0, VH, W, DASH);
+      g.fillStyle = lineCol; g.fillRect(0, VH, W, 5);
+      const my = VH + 5 + (DASH - 5) / 2, dialX = W - 34;
+      rr(10, my - 17, dialX - 44, 34, 12, "#2b3647");
+      disc(27, my, 6, "#59d98a");
+      const fs = Math.min(17, W / 22); g.font = `bold ${fs}px "Comic Sans MS", "Chalkboard SE", "Baloo 2", system-ui, sans-serif`; g.textBaseline = "middle";
+      g.fillStyle = "#b9c6d8"; g.fillText("Next stop", 41, my + 1);
+      const nx = 47 + g.measureText("Next stop").width;
       g.fillStyle = "#fff"; g.fillText(next, nx, my + 1, Math.max(20, dialX - 40 - nx));
       const R = 19, a0 = Math.PI * .8, a1 = Math.PI * 2.2, an = a0 + (a1 - a0) * Math.max(0, Math.min(1, v));
-      disc(dialX, my, R + 4, "#0e1418");
-      g.lineCap = "round"; g.lineWidth = 4;
-      g.strokeStyle = "#3a4651"; g.beginPath(); g.arc(dialX, my, R - 3, a0, a1); g.stroke();
-      g.strokeStyle = "#3ddc5f"; g.beginPath(); g.arc(dialX, my, R - 3, a0, an); g.stroke();
-      g.strokeStyle = "#fff"; g.lineWidth = 2.2; g.beginPath(); g.moveTo(dialX, my); g.lineTo(dialX + Math.cos(an) * (R - 6), my + Math.sin(an) * (R - 6)); g.stroke();
+      disc(dialX, my, R + 4, "#2b3647");
+      g.lineCap = "round"; g.lineWidth = 4.5;
+      g.strokeStyle = "#5d6c84"; g.beginPath(); g.arc(dialX, my, R - 3, a0, a1); g.stroke();
+      g.strokeStyle = "#ffd96a"; g.beginPath(); g.arc(dialX, my, R - 3, a0, an); g.stroke();
+      g.strokeStyle = "#fff"; g.lineWidth = 2.4; g.beginPath(); g.moveTo(dialX, my); g.lineTo(dialX + Math.cos(an) * (R - 6), my + Math.sin(an) * (R - 6)); g.stroke();
       g.lineCap = "butt";
-      disc(dialX, my, 2.6, "#fff");
+      disc(dialX, my, 2.8, "#fff");
     }
     return {
       draw(q, z0, v) {
